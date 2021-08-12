@@ -59,7 +59,7 @@ int get_enable_cam();
 /****************************************/
 
 /* PThread mutex to manage the list of incoming packets */
-// static pthread_mutex_t INCOMING_PACKET_MUTEX;
+static pthread_mutex_t INCOMING_PACKET_MUTEX;
 /*MUtex for camera*/
 // static pthread_mutex_t camera_mutex;
 /*Mutex for camera enable*/
@@ -270,11 +270,11 @@ int buzz_listen(const char* type, int msg_size) {
    /* Set the message size */
    MSG_SIZE = msg_size;
    /* Create the mutex */
-   // if(pthread_mutex_init(&INCOMING_PACKET_MUTEX, NULL) != 0) {
-   //    fprintf(stderr, "Error initializing the incoming packet mutex: %s\n",
-   //            strerror(errno));
-   //    return 0;
-   // }
+   if(pthread_mutex_init(&INCOMING_PACKET_MUTEX, NULL) != 0) {
+      fprintf(stderr, "Error initializing the incoming packet mutex: %s\n",
+              strerror(errno));
+      return 0;
+   }
    /* Listen to connections */
    if(strcmp(type, "tcp") == 0)
       return 1;//buzz_listen_tcp();
@@ -335,9 +335,6 @@ static int buzz_register_hooks() {
    buzzvm_gstore(VM);
    buzzvm_pushs(VM,  buzzvm_string_register(VM, "wait", 1));
    buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_wait));
-   buzzvm_gstore(VM);
-   buzzvm_pushs(VM,  buzzvm_string_register(VM, "voltage", 1));
-   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_get_voltage));
    buzzvm_gstore(VM);
    /*buzzvm_pushs(VM,  buzzvm_string_register(VM, "set_leds", 1));
    buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzkh4_set_leds));
