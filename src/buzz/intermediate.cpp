@@ -1,11 +1,40 @@
 #include "intermediate.h"
 #include "include/QPSolver.h"
 #include "include/lambda_2.h"
+// #include "include/inc_fc/msp/msp_msg.hpp"
+// #include "include/inc_fc/msp/Client.hpp"
+// extern msp::client::Client fc;
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+// #define CTRL_TIME_PERIOD 0.01
+// #define SENS_TIME_PERIOD 1
+// #define SERIAL_DEVICE "/dev/ttyS0"
+// #define BAUDRATE 115200
+
+// // Defining the fc client
+// msp::client::Client fc;    
+// int aaa = 10;
+
+// void setup_fc(buzzvm_t vm)
+// {
+//     int b = aaa + 1;
+//     fc.setLoggingLevel(msp::client::LoggingLevel::SILENT);
+//     fc.setVariant(msp::FirmwareVariant::INAV);
+//     fc.start(SERIAL_DEVICE, BAUDRATE);
+//     msp::FirmwareVariant fw_variant = msp::FirmwareVariant::INAV;
+// }
+
+// void reset_fc(buzzvm_t vm)
+// {
+//     msp::ByteVector  reboot_data = msp::ByteVector(0);
+//     bool reb = fc.sendData(msp::ID::MSP_REBOOT,reboot_data);
+//     if(reb) std::cout<<"reboot successful\r\n";
+//     // std::this_thread::sleep_for(std::chrono::seconds(10));
+// }
 
 int qp_solver(buzzvm_t vm)
 {

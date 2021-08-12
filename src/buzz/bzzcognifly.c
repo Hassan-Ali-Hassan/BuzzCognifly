@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+// #include "fc_inav.h"
 
 static int done = 0;
 
@@ -57,8 +58,16 @@ int main(int argc, char** argv) {
    char* bcfname = argv[3];
    /* The debugging information file name */
    char* dbgfname = argv[4];
+
+   /*start FC (flight controller) thread*/
+   fc_inav_main();
+
    /* Wait for connection */
+   /* this function invokes the buzz_listen_tcp() in case
+   of using tcp stream, which creates a thread that runs the
+   function called buzz_stream_incoming_thread_tcp()*/
    if(!buzz_listen(stream, msg_sz)) return 1;
+     
    /* Set CTRL-C handler */
    signal(SIGTERM, ctrlc_handler);
    signal(SIGINT, ctrlc_handler);
@@ -67,7 +76,7 @@ int main(int argc, char** argv) {
    /*initialize camera thread*/
    //camera_routine();
    /*initialize LED thread*/
-   start_blink();
+   // start_blink();
 
    /* Set the Buzz bytecode */
    if(buzz_script_set(bcfname, dbgfname)) {

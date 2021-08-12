@@ -41,7 +41,7 @@ float abs_x = 0.0, abs_y = 0.0, abs_theta = 0.0;
 
 /* Pointer to a function that sends a message on the stream */
 static void (*STREAM_SEND)() = NULL;
-int buzzutility_enable_camera(buzzvm_t vm);
+// int buzzutility_enable_camera(buzzvm_t vm);
 int buzzutility_enable_us(buzzvm_t vm);
 int buzzutility_play_sound(buzzvm_t vm);
 
@@ -61,9 +61,9 @@ int get_enable_cam();
 /* PThread mutex to manage the list of incoming packets */
 static pthread_mutex_t INCOMING_PACKET_MUTEX;
 /*MUtex for camera*/
-static pthread_mutex_t camera_mutex;
+// static pthread_mutex_t camera_mutex;
 /*Mutex for camera enable*/
-static pthread_mutex_t camera_enable_mutex;
+// static pthread_mutex_t camera_enable_mutex;
 
 /* List of packets received over the stream */
 struct incoming_packet_s {
@@ -120,7 +120,7 @@ void incoming_packet_add(int id, const uint8_t* pl) {
 
 /****************************************/
 /****************************************/
-
+/*this function works forever in its own thread*/
 void* buzz_stream_incoming_thread_tcp(void* args) {
    /* Create buffer for message */
    uint8_t* buf = calloc(MSG_SIZE, 1);
@@ -313,15 +313,30 @@ static const char* buzz_error_info() {
 
 static int buzz_register_hooks() {
    buzzvm_pushs(VM,  buzzvm_string_register(VM, "print", 1));
-   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzkh4_print));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzcognifly_print));
    buzzvm_gstore(VM);
    buzzvm_pushs(VM,  buzzvm_string_register(VM, "log", 1));
-   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzkh4_print));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzcognifly_print));
    buzzvm_gstore(VM);
-   buzzvm_pushs(VM,  buzzvm_string_register(VM, "set_wheels", 1));
-   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzkh4_set_wheels));
+   buzzvm_pushs(VM,  buzzvm_string_register(VM, "reset", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_reset));
    buzzvm_gstore(VM);
-   buzzvm_pushs(VM,  buzzvm_string_register(VM, "set_leds", 1));
+   buzzvm_pushs(VM,  buzzvm_string_register(VM, "arm", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_arm));
+   buzzvm_gstore(VM);
+   buzzvm_pushs(VM,  buzzvm_string_register(VM, "disarm", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_disarm));
+   buzzvm_gstore(VM);
+   buzzvm_pushs(VM,  buzzvm_string_register(VM, "land", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_land));
+   buzzvm_gstore(VM);
+   buzzvm_pushs(VM,  buzzvm_string_register(VM, "takeoff", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_takeoff));
+   buzzvm_gstore(VM);
+   buzzvm_pushs(VM,  buzzvm_string_register(VM, "wait", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_wait));
+   buzzvm_gstore(VM);
+   /*buzzvm_pushs(VM,  buzzvm_string_register(VM, "set_leds", 1));
    buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzkh4_set_leds));
    buzzvm_gstore(VM);
    buzzvm_pushs(VM,  buzzvm_string_register(VM, "set_led", 1));
@@ -329,7 +344,7 @@ static int buzz_register_hooks() {
    buzzvm_gstore(VM);
    buzzvm_pushs(VM,  buzzvm_string_register(VM, "set_led_freq", 1));
    buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzkh4_set_led_freq));
-   buzzvm_gstore(VM);
+   buzzvm_gstore(VM);*/
    buzzvm_pushs(VM, buzzvm_string_register(VM, "goto", 1));
    buzzvm_pushcc(VM, buzzvm_function_register(VM, BuzzGoTo));
    buzzvm_gstore(VM);
@@ -562,9 +577,14 @@ void buzz_script_step() {
    buzzkh4_update_us(VM);
    buzzkh4_abs_position(VM, abs_x, abs_y, abs_theta);
 
-   pthread_mutex_lock(&camera_mutex);
-   buzzkh4_camera_updateblob(VM,blob_pos);
-   pthread_mutex_unlock(&camera_mutex);
+   POSE[0] = abs_x;
+   POSE[1] = abs_y;
+   POSE[2] = 0.0; //just a dummy value, to be fixed later by assigning actual z value.
+   POSE[3] = abs_theta;
+   
+   // pthread_mutex_lock(&camera_mutex);
+   // buzzkh4_camera_updateblob(VM,blob_pos);
+   // pthread_mutex_unlock(&camera_mutex);
 
    /*
     * Call Buzz step() function
@@ -722,30 +742,30 @@ int buzzutility_play_sound(buzzvm_t vm){
 
 /****************************************/
 /****************************************/
-uint8_t on = 0;
-void* blink(void *args) {
-  while(1) {
-    pthread_testcancel();
-    long f = get_led_freq();
-    if(f==-1)
-      continue;
-    else if(f==0 && !on) {
-      on = 1;
-      turnon_led(on);
-    } else if(f!=0) {
-      turnon_led(on);
-      usleep(f);
-      on = !on;
-    }
-    pthread_testcancel();
-  }
+// uint8_t on = 0;
+// void* blink(void *args) {
+//   while(1) {
+//     pthread_testcancel();
+//     long f = get_led_freq();
+//     if(f==-1)
+//       continue;
+//     else if(f==0 && !on) {
+//       on = 1;
+//       turnon_led(on);
+//     } else if(f!=0) {
+//       turnon_led(on);
+//       usleep(f);
+//       on = !on;
+//     }
+//     pthread_testcancel();
+//   }
 
-  return NULL;
-}
+//   return NULL;
+// }
 
-void start_blink() {
-   pthread_create(&blink_thread, NULL, &blink, NULL);
-}
+// void start_blink() {
+//    pthread_create(&blink_thread, NULL, &blink, NULL);
+// }
 
 /****************************************/
 /****************************************/
