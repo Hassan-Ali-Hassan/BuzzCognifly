@@ -1,12 +1,12 @@
 ## About
 
-BuzzKH4 is a [Buzz](http://the.swarming.buzz/) implementation for Khepera IV robots.
+BuzzCognifly is a [Buzz](http://the.swarming.buzz/) implementation for the Cognifly quadcopter.
 
 ### Prerequisites
 
-The following instructions are made for Ubuntu 16.04 LTS.
+The following instructions are made  under the assumption that the installation will take place on the target operating computer (e.g. onboard computer) directly. The following steps have been tried with a Raspberry Pi running Raspbian Buster 10, but similar prerequisites will apply for different versions of linux and different onboard computers.
 
-* [Khepera Light Toolchain](http://ftp.k-team.com/KheperaIV/software//Gumstix%20COM/light_tools/) - CrossCompiler, select the one for Yocto (v.1.0)
+* [Install ASIO] ```sudo apt install --no-install-recommends libasio-dev```
 * Make sure to install gcc-multilib:
 
 ```
@@ -15,56 +15,37 @@ sudo apt-get install gcc-multilib
 
 To have a cleaner workspace, it is suggested to creata folder, e.g. khepera-proper, and inside, clone:
 * [Buzz](https://github.com/MISTLab/Buzz)
-* [BuzzKH4](https://github.com/MISTLab/BuzzKH4)
+* [BuzzCognifly]
 
 ## Installation
 
 In order to sucessfully compile the project, you need a cross compiler for Yocto linux and [Khepera IV](https://www.k-team.com/khepera-iv) API.
 
-1. Install Khepera IV Light Toolchain:
+
+1. We start by installing [Buzz]. In the [Buzz] folder:
 
 ```
-sudo tar -xjf khepera4-yocto-light-kbX.Y.tar.bz2 -C /usr/local
-```
-
-2. Create and navigate to a build folder, then cross-compile and install Buzz (note, TargetKheperaIV.cmake is located in BuzzKH4/src/cmake folder):
-
-```
-cmake -DCMAKE_TOOLCHAIN_FILE=cmake/TargetKheperaIV.cmake ../src/
+mkdir build
+cd build
+cmake ../src/
 sudo make install
 ```
 
-3. Cross compile BuzzKH4 (create and navigate to a build folder):
+2. Similarly, we install BuzzCognifly:
 
 ```
-cmake -DCMAKE_TOOLCHAIN_FILE=cmake/TargetKheperaIV.cmake ../src/
+mkdir build
+cd build
+cmake ../src/
+sudo make
 ```
 
-4. Assuming everything is compiled without errors, scripts/update.sh can be used to deploy the necessary binaries to a Khepera robot, assuming that the folder strcture is given as (~/khepera-proper/):
+4. The latter process produces a filled called bzzCognifly. This is the file we use to run Buzz code on the cogilfy, for example:
 
 ```
-.
-..
-Buzz
-BuzzKH4
-update.sh
+./bzzCognifly tcp 500 test_case.bo test_case.bdb
 ```
+where ```test_case.*``` result from compiling the Buzz code: ```bzzc test_case.bzz```. 
 
-Usage (if necessary, add executable permission as: chmod +x update.sh):
-```
-./update.sh (all|kh4) K01, K02, ..., K_n
-```
 
-## Example script:
 
-Available in demo/stest.bzz, it is a simple Buzz script which tests the absolute positioning, relative neighbor positioning, IR sensors, US sensors and sound. Run Buzz scripts by:
-
-```
-~/MIST/bin/bzzkh4 tcp 500 stest.bo stest.bdb
-```
-
-NOTE: Scripts can be compiled locally on a robot, or on a computer equipped with with cross-compiling tools. For local Buzz compilation use the scripts/buzz-run.sh script as:
-
-```
-./buzz-run.sh my_code (without any extensions)
-```

@@ -1,6 +1,7 @@
 #include "fc_inav.h"
 #include "include/inc_fc/msp/msp_msg.hpp"
 #include "include/inc_fc/msp/Client.hpp"
+#include "/usr/include/eigen3/Eigen/Dense"
 #include <iostream>
 #include <sys/time.h>
 // #include <vector>
@@ -16,7 +17,7 @@ set the RC commands and POSE is being used to send positions
 to the FC to pursue position or velocity*/
 
 float CMDS[6] = {1500,1500,900,1500,1000,1900}; //Roll, Pitch, Thrust, Yaw, Aux1, Aux2
-float POSE[4] = {10,25,39,40};                      //position: x,y,z and Yaw wrt mocap frame
+float POSE[4] = {10,25,39,40};                  //position: x,y,z and Yaw wrt mocap frame
 float DESIRED[4] = {0,0,0,0};                   //flag (0: poshold or 1:pos track or 2: vel track), x_des, y_des, z_des
 int fc_mode = 0; //0: just hover, 1: track position, 2: track speed
 float fc_voltage = 0;
