@@ -336,6 +336,18 @@ static int buzz_register_hooks() {
    buzzvm_pushs(VM,  buzzvm_string_register(VM, "wait", 1));
    buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_wait));
    buzzvm_gstore(VM);
+   buzzvm_pushs(VM,  buzzvm_string_register(VM, "voltage", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_get_voltage));
+   buzzvm_gstore(VM);
+   buzzvm_pushs(VM,  buzzvm_string_register(VM, "activate_mocap", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_activate_mocap));
+   buzzvm_gstore(VM);
+   buzzvm_pushs(VM,  buzzvm_string_register(VM, "deactivate_mocap", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_deactivate_mocap));
+   buzzvm_gstore(VM);
+   buzzvm_pushs(VM,  buzzvm_string_register(VM, "dummy", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_dummy));
+   buzzvm_gstore(VM);
    /*buzzvm_pushs(VM,  buzzvm_string_register(VM, "set_leds", 1));
    buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzkh4_set_leds));
    buzzvm_gstore(VM);

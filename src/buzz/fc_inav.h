@@ -3,7 +3,8 @@
 
 
 #define CTRL_TIME_PERIOD 0.01
-#define SENS_TIME_PERIOD 1
+#define MOCAP_TIME_PERIOD 0.2
+#define SENS_TIME_PERIOD 0.2
 #define SERIAL_DEVICE "/dev/ttyS0"
 #define BAUDRATE 115200
 
@@ -18,6 +19,7 @@ extern "C"
 
 extern float CMDS[6];
 extern float POSE[4];
+extern int DONE;
 
 /*main inav function execution*/
 void fc_inav_main();
@@ -35,10 +37,16 @@ int fc_reset(buzzvm_t vm);
 int fc_arm(buzzvm_t vm);
 /*disarms motors*/
 int fc_disarm(buzzvm_t vm);
+/*activate mocap functionality*/
+int fc_activate_mocap(buzzvm_t vm);
+/*deactivate mocap functionality*/
+int fc_deactivate_mocap(buzzvm_t vm);
+
 
 /*just a generic waiting function (takes float input)*/
 int fc_wait(buzzvm_t vm);
-
+int fc_dummy(buzzvm_t vm);
+void WAIT(float);
 #ifdef __cplusplus
 } // extern "C"
 #endif

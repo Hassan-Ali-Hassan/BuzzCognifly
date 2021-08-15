@@ -27,6 +27,7 @@ void usage(const char* path, int status) {
 
 static void ctrlc_handler(int sig) {
    done = 1;
+   DONE = 1;
 }
 
 int main(int argc, char** argv) {

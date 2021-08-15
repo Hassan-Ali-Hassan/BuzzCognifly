@@ -51,6 +51,8 @@ enum class ID : uint16_t {
     MSP_SET_RTH_AND_LAND_CONFIG        = 22,
     MSP_FW_CONFIG                      = 23,
     MSP_SET_FW_CONFIG                  = 24,
+    MSP_MOCAP                          = 30,  // for recieving mocap pos
+    MSP_DES_POS                        = 31,  // for setting desired pos or vel (wrt mocap)
     MSP_BATTERY_CONFIG                 = 32,  // not avaialable in iNav
     MSP_SET_BATTERY_CONFIG             = 33,  // not avaialable in iNav
     MSP_MODE_RANGES                    = 34,
@@ -951,6 +953,45 @@ struct BatteryConfigSettings {
     Value<uint16_t> batteryCapacity;
     Value<uint8_t> voltageMeterSource;
     Value<uint8_t> currentMeterSource;
+};
+
+// MSP_MOCAP: 30
+struct SetMocap : public Message {
+    SetMocap(FirmwareVariant v) : Message(v) {}
+
+    virtual ID id() const override { return ID::MSP_MOCAP; }
+
+    std::vector<int16_t> pose;  // [counter,X,Y,Z,YAW] from mocap (should be rotated from mocap coordinates to intertial drone coordinates)
+
+    virtual ByteVectorUptr encode() const override {
+        ByteVectorUptr data = std::make_unique<ByteVector>();
+        bool mc             = true;
+        for(const int16_t& c : pose) {
+            mc &= data->pack(c);
+        }
+        // std::cout<<"I am a mocap message:  "<<*data<<std::endl;
+        if(!mc) data.reset();
+        return data;
+    }
+};
+
+// MSP_SET_DES_VEC = 31
+struct SetDesVec : public Message {
+    SetDesVec(FirmwareVariant v) : Message(v) {}
+
+    virtual ID id() const override { return ID::MSP_DES_POS; }
+
+    std::vector<int16_t> vec;  // [flag, X_des, Y_des, Z_des] flag = 0: pos hold, flag = 1: input vector is a desired position, flag = 2: input vector is a desired velocity
+
+    virtual ByteVectorUptr encode() const override {
+        ByteVectorUptr data = std::make_unique<ByteVector>();
+        bool mc             = true;
+        for(const uint16_t& c : vec) {
+            mc &= data->pack(c);
+        }
+        if(!mc) data.reset();
+        return data;
+    }
 };
 
 // MSP_BATTERY_CONFIG: 32
@@ -4921,10 +4962,10 @@ struct Debug : public Message {
 
     virtual ID id() const override { return ID::MSP_DEBUG; }
 
-    Value<uint16_t> debug1;
-    Value<uint16_t> debug2;
-    Value<uint16_t> debug3;
-    Value<uint16_t> debug4;
+    Value<int16_t> debug1;
+    Value<int16_t> debug2;
+    Value<int16_t> debug3;
+    Value<int16_t> debug4;
 
     virtual bool decode(const ByteVector& data) override {
         bool rc = true;

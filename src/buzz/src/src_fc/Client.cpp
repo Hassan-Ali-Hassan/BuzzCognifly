@@ -163,6 +163,7 @@ bool Client::sendMessage(msp::Message& message, const double& timeout) {
     if(recv_success) {
         // make local copy of the data so that the read thread can keep moving
         data = request_received->payload;
+        // std::cout<<"data being recieved: "<<data;
     }
     mutex_response.unlock();
     // decode the local copy of the payload
