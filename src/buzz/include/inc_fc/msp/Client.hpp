@@ -91,6 +91,10 @@ public:
      */
     bool stop();
 
+    bool Start(const std::string& device, const size_t baudrate = 115200);
+
+    bool Stop();
+
     /**
      * @brief Query the system to see if a connection is active
      * @return true on success

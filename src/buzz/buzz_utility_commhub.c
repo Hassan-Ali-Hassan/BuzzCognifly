@@ -35,7 +35,6 @@ static int         MSG_RANGE = 1.0;  //Max accepted range for msgs (m)
 int                ROBOT_ID        = -1;
 // absolute positioning
 float abs_x = 0.0, abs_y = 0.0, abs_theta = 0.0;
-// int DONE = 0;
 
 #define TCP_LIST_STREAM_PORT "24580"
 #define IDOFFSET 0
@@ -144,7 +143,6 @@ void* buzz_stream_incoming_thread_tcp(void* args) {
          if(cur == 0) {
             fprintf(stderr, "Connection closed by peer\n");
             free(buf);
-            DONE = 1;
             kh4_done();
             return NULL;
          }
@@ -607,7 +605,7 @@ void buzz_script_step() {
    // printf("value of x and y are: %0.2f\t %0.2f\t %0.2f\n",abs_x,abs_y,abs_theta);
    POSE[0] = abs_x;
    POSE[1] = abs_y;
-   POSE[2] = 45.0; //just a dummy value in cm, to be fixed later by assigning actual z value.
+   POSE[2] = 0.0; //just a dummy value, to be fixed later by assigning actual z value.
    POSE[3] = abs_theta;
    
    // pthread_mutex_lock(&camera_mutex);

@@ -3,10 +3,11 @@
 
 
 #define CTRL_TIME_PERIOD 0.01
-#define MOCAP_TIME_PERIOD 0.2
+#define MOCAP_TIME_PERIOD 0.07
 #define SENS_TIME_PERIOD 0.2
 #define SERIAL_DEVICE "/dev/ttyS0"
 #define BAUDRATE 115200
+#define PI 3.141592653589
 
 #ifdef __cplusplus
 extern "C"
@@ -47,6 +48,7 @@ int fc_deactivate_mocap(buzzvm_t vm);
 int fc_wait(buzzvm_t vm);
 int fc_dummy(buzzvm_t vm);
 void WAIT(float);
+void rotate_pose();
 #ifdef __cplusplus
 } // extern "C"
 #endif

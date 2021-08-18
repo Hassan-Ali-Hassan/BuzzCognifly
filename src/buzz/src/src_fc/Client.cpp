@@ -40,6 +40,14 @@ bool Client::stop() {
     return disconnectPort() && stopReadThread() && stopSubscriptions();
 }
 
+bool Client::Start(const std::string& device, const size_t baudrate) {
+    return connectPort(device, baudrate);
+}
+
+bool Client::Stop() {
+    return disconnectPort();
+}
+
 bool Client::connectPort(const std::string& device, const size_t baudrate) {
     try {
         port.open(device);

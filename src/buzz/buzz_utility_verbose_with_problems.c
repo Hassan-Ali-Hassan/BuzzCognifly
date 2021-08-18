@@ -35,7 +35,6 @@ static int         MSG_RANGE = 1.0;  //Max accepted range for msgs (m)
 int                ROBOT_ID        = -1;
 // absolute positioning
 float abs_x = 0.0, abs_y = 0.0, abs_theta = 0.0;
-// int DONE = 0;
 
 #define TCP_LIST_STREAM_PORT "24580"
 #define IDOFFSET 0
@@ -83,12 +82,12 @@ static struct incoming_packet_s* PACKETS_LAST  = NULL;
 void incoming_packet_add(int id, const uint8_t* pl) {
   // check if the packet is from the current robot
   // if so, extract the absolute position data, and drop the package
-//   int packet_from = 0;
-//   int offset = sizeof(float) * 3;
-//   memcpy(&packet_from, pl + offset, sizeof(int));
-//   printf("Packet from: %d\t ROBOT_ID: %d\t id: %d\n", packet_from,ROBOT_ID,id);
-  if(id == ROBOT_ID){
-    int offset = 0;
+  int packet_from = 0;
+  int offset = sizeof(float) * 3;
+  memcpy(&packet_from, pl + offset, sizeof(int));
+  //printf("Packet from: %d", packet_from);
+  if(packet_from == ROBOT_ID){
+    offset += sizeof(int);
     memcpy(&abs_x, pl + offset, sizeof(float));
     offset += sizeof(float);
     memcpy(&abs_y, pl + offset, sizeof(float));
@@ -138,14 +137,11 @@ void* buzz_stream_incoming_thread_tcp(void* args) {
          if(cur < 0) {
             fprintf(stderr, "Error receiving data: %s\n", strerror(errno));
             free(buf);
-            kh4_done();
             return NULL;
          }
          if(cur == 0) {
             fprintf(stderr, "Connection closed by peer\n");
             free(buf);
-            DONE = 1;
-            kh4_done();
             return NULL;
          }
          left -= cur;
@@ -169,12 +165,10 @@ void buzz_stream_send_tcp() {
       /* fprintf(stderr, "[DEBUG] Sent %zd bytes", cur); */
       if(cur < 0) {
          fprintf(stderr, "Error receiving data: %s\n", strerror(errno));
-         kh4_done();
          exit(1);
       }
       if(cur == 0) {
          fprintf(stderr, "Connection closed by peer\n");
-         kh4_done();
          exit(1);
       }
       left -= cur;
@@ -408,12 +402,9 @@ int buzz_script_set(const char* bo_filename,
    /* Get hostname */
    char hstnm[30];
    gethostname(hstnm, 30);
-   // printf("the hostname is: %s\n",hstnm);
    /* Make numeric id from hostname */
-   /* NOTE: here we assume that the hostname is in the format Knn (e.g. K01) */
+   /* NOTE: here we assume that the hostname is in the format Knn */
    ROBOT_ID = strtol(hstnm + 1, NULL, 10) + IDOFFSET;	//CHANGES FOR OFFROBOTS TESTS!!!!
-   //the previous line we put hstnm+1 so the input will bypass the K in the hostname
-   
    /* Reset the Buzz VM */
    if(VM){
      buzzvm_destroy(&VM);
@@ -466,12 +457,6 @@ int buzz_script_set(const char* bo_filename,
    BO_FNAME = strdup(bo_filename);
    /* Execute the global part of the script */
    buzzvm_execute_script(VM);
-   /*Set a some constant variables */
-   buzzvm_pushs(VM, buzzvm_string_register(VM, "V_TYPE", 1));
-   buzzvm_pushi(VM, 0);
-   buzzvm_gstore(VM);
-
-
    /* Call the Init() function */
    buzzvm_function_call(VM, "init", 0);
    /* Remove useless return value from stack */
@@ -545,14 +530,13 @@ void buzz_script_step() {
       tot += sizeof(float);
 
       // reserved for absolute positioning (extracted)
-    //   tot += sizeof(int);
-    //   tot += sizeof(float);
-    //   tot += sizeof(float);
-    //   tot += sizeof(float);
+      tot += sizeof(int);
+      tot += sizeof(float);
+      tot += sizeof(float);
+      tot += sizeof(float);
 
       //if(x > MSG_RANGE) { // limit the msg range of the nieghbor
         buzzneighbors_add(VM, PACKETS_FIRST->id, x, y, t);
-      //   printf("value of x and y from %d are: %0.2f\t %0.2f\t %0.2f\n",PACKETS_FIRST->id,x,y,t);
         uint16_t msgsz;
         do {
            /* Get payload size */
@@ -604,10 +588,10 @@ void buzz_script_step() {
    buzzkh4_update_ir_filtered(VM);
    buzzkh4_update_us(VM);
    buzzkh4_abs_position(VM, abs_x, abs_y, abs_theta);
-   // printf("value of x and y are: %0.2f\t %0.2f\t %0.2f\n",abs_x,abs_y,abs_theta);
+
    POSE[0] = abs_x;
    POSE[1] = abs_y;
-   POSE[2] = 45.0; //just a dummy value in cm, to be fixed later by assigning actual z value.
+   POSE[2] = 0.0; //just a dummy value, to be fixed later by assigning actual z value.
    POSE[3] = abs_theta;
    
    // pthread_mutex_lock(&camera_mutex);
@@ -643,10 +627,10 @@ void buzz_script_step() {
       tot += sizeof(float);
 
       // reserved for absolute positioning (extracted)
-    //   tot += sizeof(int);
-    //   tot += sizeof(float);
-    //   tot += sizeof(float);
-    //   tot += sizeof(float);
+      tot += sizeof(int);
+      tot += sizeof(float);
+      tot += sizeof(float);
+      tot += sizeof(float);
 
       //fprintf(stdout,"sending neighbors position: %.2f,%.2f,%.2f\n",x,y,t);
    do {

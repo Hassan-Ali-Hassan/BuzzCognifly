@@ -4,6 +4,7 @@
 #include "/usr/include/eigen3/Eigen/Dense"
 #include <iostream>
 #include <sys/time.h>
+#include <math.h>
 // #include <vector>
 
 #ifdef __cplusplus
@@ -19,6 +20,7 @@ to the FC to pursue position or velocity*/
 float CMDS[6] = {1500,1500,900,1500,1000,1900}; //Roll, Pitch, Thrust, Yaw, Aux1, Aux2
 float POSE[4] = {10,25,39,40};                  //position: x,y,z and Yaw wrt mocap frame
 float DESIRED[4] = {0,0,0,0};                   //flag (0: poshold or 1:pos track or 2: vel track), x_des, y_des, z_des
+float POS_ROT[4] = {10,25,39,40};
 int fc_mode = 0; //0: just hover, 1: track position, 2: track speed
 float fc_voltage = 0;
 bool reset_flag = false;
@@ -26,7 +28,7 @@ bool mocap_active = false;
 int DONE = 0;
 
 static pthread_t FC_THREAD;
-static pthread_mutex_t LOCK_CMDS;
+// static pthread_mutex_t LOCK_CMDS;
 
 /*this function keeps sending command messages and 
 collects needed information all the time, or else fc
@@ -41,14 +43,17 @@ void* fc_main_thread(void* args)
     msp::client::Client client;    
     client.setLoggingLevel(msp::client::LoggingLevel::SILENT);
     client.setVariant(msp::FirmwareVariant::INAV);
-    client.start(SERIAL_DEVICE, BAUDRATE);
+    client.Start(SERIAL_DEVICE, BAUDRATE);
     msp::FirmwareVariant fw_variant = msp::FirmwareVariant::INAV;
 
     // rebooting the drone
+    bool reb = false;
     msp::ByteVector  reboot_data = msp::ByteVector(0);
-    bool reb = client.sendData(msp::ID::MSP_REBOOT,reboot_data);
-    if(reb) std::cout<<"reboot successful\r\n";
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    reb = client.sendData(msp::ID::MSP_REBOOT,reboot_data);
+    client.Stop();
+    if(reb) printf("reboot successfull\n");
+    WAIT(15.0);
+    client.start(SERIAL_DEVICE, BAUDRATE);
 
     /*setting up messages we need*/
     msp::msg::Debug debug(fw_variant);    //for debug messages in case we need them
@@ -73,25 +78,35 @@ void* fc_main_thread(void* args)
     /*this loop goes on forever in an independent thread*/
     while(DONE != 1){
         int i;
+        rotate_pose();
         // setting appropriate messages contents
         for(i = 0; i < 6; i++)cmds[i] = CMDS[i];
-        for(i = 1; i < 5; i++)mocap_data[i] = POSE[i-1];
+        for(i = 1; i < 5; i++){
+            if(i == 4){
+                mocap_data[i] = -POSE[i-1]*180/PI * 10;
+            }
+            else{
+                // mocap_data[i] = POSE[i-1]*100;
+                mocap_data[i] = POS_ROT[i-1]*100;
+            }
+        }
         for(i = 0; i < 4; i++)desired_vec[i] = DESIRED[i];
 
         //check if we have received an order to reset
         if(reset_flag)
         {
-            reb = client.sendData(msp::ID::MSP_REBOOT,reboot_data);
-            if(reb) std::cout<<"reboot successful and waiting\r\n";
-            WAIT(10);
+            // reb = client.sendData(msp::ID::MSP_REBOOT,reboot_data);
+            // client.Stop();
+            // if(reb) std::cout<<"reboot successful and waiting\r\n";
+            // WAIT(10);
+            // client.start(SERIAL_DEVICE, BAUDRATE);
             reset_flag = false;
-            printf("finished waiting %d\n",reset_flag);
         }
         
         gettimeofday(&current_time, 0);
         long DT = current_time.tv_sec - begin.tv_sec;
-        
-        // if(DT > 5 && DT < 10)cmds[4] = 1800;
+        // printf("her we go...\n");
+        // if(DT > 15 && DT < 20)cmds[4] = 1800;
         // else cmds[4] = 1000;
 
         /* Sending RC control messages*/
@@ -126,11 +141,13 @@ void* fc_main_thread(void* args)
         if(sens_time_elapsed > SENS_TIME_PERIOD){
             gettimeofday(&last_sens_tmr,0);
             std::cout<<DT<<std::endl;
+            // printf("POSE X:%0.2f\tY:%0.2f\tTheta:%0.2f\n",POSE[0],POSE[1],POSE[3]);
             if(client.sendMessage(analog) == 1){
                 fc_voltage = analog.vbat;
                 // std::cout << "time: " << DT << "  voltage is  "<<analog.vbat<<std::endl;  
             }
             if(client.sendMessage(debug) == 1) {
+                // std::cout<<"mocap data to be sent "<<mocap_data[1]<<"  "<<mocap_data[2]<<"  "<<mocap_data[3]<<"   "<<mocap_data[4]<<std::endl;
                 std::cout << "#Debug message:" << std::endl;
                 std::cout << debug.debug1 << " , " << 
                              debug.debug2 << " , " << 
@@ -140,17 +157,34 @@ void* fc_main_thread(void* args)
             else printf("no debug!");
         }
     }
+    if(DONE == 1){
+        // landing the drone
+        for(int ii = 0; ii < 50; ii++){
+            cmds[2] = 1000;
+            rc.channels = cmds;
+            client.sendData(rc.id(),rc.encode());
+            WAIT(0.01);
+        }
+
+        // disarming the drone
+        for(int ii = 0; ii < 100; ii++){
+            cmds[4] = 1000;
+            rc.channels = cmds;
+            client.sendData(rc.id(),rc.encode());
+            WAIT(0.01);
+        }
+    }
     printf("done with the while loop\n");
-    pthread_mutex_destroy(&LOCK_CMDS);
+    // pthread_mutex_destroy(&LOCK_CMDS);
 }
 
 void fc_inav_main()
 {
-    if(pthread_mutex_init(&LOCK_CMDS, NULL) != 0) {
-      fprintf(stderr, "Error initializing the command lock mutex: %s\n",
-              strerror(errno));
-      return ;
-   }
+    // if(pthread_mutex_init(&LOCK_CMDS, NULL) != 0) {
+    //   fprintf(stderr, "Error initializing the command lock mutex: %s\n",
+    //           strerror(errno));
+    //   return ;
+    // }
 
     if(pthread_create(&FC_THREAD, NULL, &fc_main_thread, NULL) != 0) {
       fprintf(stderr, "Can't create FC_INAV thread: %s\n", strerror(errno));
@@ -174,14 +208,14 @@ int fc_set_RC(buzzvm_t vm)
     buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
     buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
 
-    pthread_mutex_lock(&LOCK_CMDS);
+    // pthread_mutex_lock(&LOCK_CMDS);
     CMDS[0]=buzzvm_stack_at(vm, 6)->f.value; //roll
     CMDS[1]=buzzvm_stack_at(vm, 5)->f.value; //pitch
     CMDS[2]=buzzvm_stack_at(vm, 4)->f.value; //throttle
     CMDS[3]=buzzvm_stack_at(vm, 3)->f.value; //yaw
     CMDS[4]=buzzvm_stack_at(vm, 2)->f.value; //aux1
     CMDS[5]=buzzvm_stack_at(vm, 1)->f.value; //aux2
-    pthread_mutex_unlock(&LOCK_CMDS);
+    // pthread_mutex_unlock(&LOCK_CMDS);
 
     return buzzvm_ret0(vm);
 }
@@ -202,7 +236,7 @@ int fc_land(buzzvm_t vm)
 
 int fc_takeoff(buzzvm_t vm)
 {
-    CMDS[2] = 1400;
+    CMDS[2] = 1420;
     return buzzvm_ret0(vm);
 }
 
@@ -264,6 +298,7 @@ int fc_wait(buzzvm_t vm)
 
 void WAIT(float a)
 {
+    printf("waiting in the waiting function");
     struct timeval start_waiting,current_waiting;
     gettimeofday(&start_waiting, 0);
     double dt_wait = 0;
@@ -283,6 +318,42 @@ void WAIT(float a)
 //"return buzzvm_ret0(vm)", the function will act weirdly if 
 //it is being called (like a funtion calls itself more than 
 // once when it was supposed to be called once, stuff like that)
+
+
+void rotate_pose()
+{   
+    float phi = PI;
+    float theta = 0;
+    float psi = -POSE[3]; //which is the negative of the yaw angle in radians
+    Eigen::Matrix3d Rx;
+    Eigen::Matrix3d Ry;
+    Eigen::Matrix3d Rz;
+
+    Rx <<  1,               0,              0,
+           0,               cos(phi),     -sin(phi),
+           0,               sin(phi),     cos(phi);
+
+    Ry <<  cos(theta),        0,             sin(theta),
+           0,                 1,               0,
+           -sin(theta),       0,             cos(theta);
+
+    Rz <<  cos(psi),     -sin(psi),     0,
+           sin(psi),     cos(psi),      0,
+           0,               0,          1;
+
+    Eigen::Vector3d v(POSE[0],POSE[1],POSE[2]);
+    Eigen::Matrix3d R = Rx * Ry * Rz;
+    Eigen::Vector3d V = R * v;
+
+    POS_ROT[0] = V(0);
+    POS_ROT[1] = V(1);
+    POS_ROT[2] = V(2);
+
+    // POS_ROT[0] = POSE[0];
+    // POS_ROT[1] = -POSE[1];
+    // POS_ROT[2] = POSE[2];
+}
+
 
 
 int fc_dummy(buzzvm_t vm)

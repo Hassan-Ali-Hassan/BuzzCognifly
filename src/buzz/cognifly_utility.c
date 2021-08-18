@@ -25,6 +25,7 @@ void kh4_setup() {
 
 void kh4_done() {
    fprintf(stdout, "Robot stopped.\n");
+   CMDS[4] = 1000;
 }
 
 /****************************************/

@@ -9,7 +9,6 @@
 // #include "fc_inav.h"
 
 static int done = 0;
-
 /*
  * Print usage information
  */
