@@ -351,6 +351,15 @@ static int buzz_register_hooks() {
    buzzvm_pushs(VM,  buzzvm_string_register(VM, "deactivate_mocap", 1));
    buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_deactivate_mocap));
    buzzvm_gstore(VM);
+   buzzvm_pushs(VM,  buzzvm_string_register(VM, "activate_yaw_control", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_activate_yaw_control));
+   buzzvm_gstore(VM);
+   buzzvm_pushs(VM,  buzzvm_string_register(VM, "deactivate_yaw_control", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_deactivate_yaw_control));
+   buzzvm_gstore(VM);
+   buzzvm_pushs(VM,  buzzvm_string_register(VM, "set_thrust", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_set_thrust));
+   buzzvm_gstore(VM);
    buzzvm_pushs(VM,  buzzvm_string_register(VM, "dummy", 1));
    buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_dummy));
    buzzvm_gstore(VM);
@@ -364,7 +373,13 @@ static int buzz_register_hooks() {
    buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzkh4_set_led_freq));
    buzzvm_gstore(VM);*/
    buzzvm_pushs(VM, buzzvm_string_register(VM, "goto", 1));
-   buzzvm_pushcc(VM, buzzvm_function_register(VM, BuzzGoTo));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_track_pos));
+   buzzvm_gstore(VM);
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "goto_v", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, fc_track_vel));
+   buzzvm_gstore(VM);
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "random", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, random_number_generator));
    buzzvm_gstore(VM);
 /*   buzzvm_pushs(VM,  buzzvm_string_register(VM, "enable_camera", 1));
    buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzutility_enable_camera));

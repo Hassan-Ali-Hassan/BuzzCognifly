@@ -981,7 +981,7 @@ struct SetDesVec : public Message {
 
     virtual ID id() const override { return ID::MSP_DES_POS; }
 
-    std::vector<int16_t> vec;  // [flag, X_des, Y_des, Z_des] flag = 0: pos hold, flag = 1: input vector is a desired position, flag = 2: input vector is a desired velocity
+    std::vector<uint16_t> vec;  // [flag, X_des, Y_des, Z_des] flag = 0: pos hold, flag = 1: input vector is a desired position, flag = 2: input vector is a desired velocity
 
     virtual ByteVectorUptr encode() const override {
         ByteVectorUptr data = std::make_unique<ByteVector>();

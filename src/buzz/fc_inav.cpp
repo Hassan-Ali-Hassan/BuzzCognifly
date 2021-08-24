@@ -19,12 +19,17 @@ to the FC to pursue position or velocity*/
 
 float CMDS[6] = {1500,1500,900,1500,1000,1900}; //Roll, Pitch, Thrust, Yaw, Aux1, Aux2
 float POSE[4] = {10,25,39,40};                  //position: x,y,z and Yaw wrt mocap frame
-float DESIRED[4] = {0,0,0,0};                   //flag (0: poshold or 1:pos track or 2: vel track), x_des, y_des, z_des
+float DESIRED[4] = {0,0,0};                   //flag (0: poshold or 1:pos track or 2: vel track), x_des, y_des, z_des
 float POS_ROT[4] = {10,25,39,40};
+uint16_t DESIRED_LIST[7] = {0,0,0,0,1,1,1};
 int fc_mode = 0; //0: just hover, 1: track position, 2: track speed
 float fc_voltage = 0;
 bool reset_flag = false;
 bool mocap_active = false;
+bool control_yaw_active = false;
+int desired_vector_mode = 0;
+float desired_yaw = 0;
+int takeoff_thrust = 1420;
 int DONE = 0;
 
 static pthread_t FC_THREAD;
@@ -37,7 +42,7 @@ void* fc_main_thread(void* args)
 {
     std::vector<uint16_t> cmds(6, 1500);
     std::vector<int16_t> mocap_data(5, 0);
-    std::vector<int16_t> desired_vec(4, 0);
+    std::vector<uint16_t> desired_vec(7, 1);
 
     // std::vector<uint16_t> cmds(6, 1500);
     msp::client::Client client;    
@@ -67,20 +72,23 @@ void* fc_main_thread(void* args)
     cmds[5] = 1800;     //NAV_POSHOLD mode initially
 
     /*setting up some time variables that we need*/
-    struct timeval begin, current_time, last_ctrl_tmr, last_sens_tmr, last_mocap_tmr;
+    struct timeval begin, current_time, last_ctrl_tmr, last_sens_tmr, last_mocap_tmr,last_desVec_tmr;
     gettimeofday(&begin, 0);
     gettimeofday(&last_ctrl_tmr,0);
     gettimeofday(&last_sens_tmr,0);
     gettimeofday(&last_mocap_tmr,0);
-
+    gettimeofday(&last_desVec_tmr,0);
+    
     long sec,usec;
 
     /*this loop goes on forever in an independent thread*/
     while(DONE != 1){
         int i;
         rotate_pose();
+        vec_to_list();
         // setting appropriate messages contents
         for(i = 0; i < 6; i++)cmds[i] = CMDS[i];
+        for(i = 0; i < 7; i++)desired_vec[i] = DESIRED_LIST[i];
         for(i = 1; i < 5; i++){
             if(i == 4){
                 mocap_data[i] = -POSE[i-1]*180/PI * 10;
@@ -90,8 +98,7 @@ void* fc_main_thread(void* args)
                 mocap_data[i] = POS_ROT[i-1]*100;
             }
         }
-        for(i = 0; i < 4; i++)desired_vec[i] = DESIRED[i];
-
+        
         //check if we have received an order to reset
         if(reset_flag)
         {
@@ -108,6 +115,18 @@ void* fc_main_thread(void* args)
         // printf("her we go...\n");
         // if(DT > 15 && DT < 20)cmds[4] = 1800;
         // else cmds[4] = 1000;
+
+        if(control_yaw_active){
+            float kp_yaw = 1;
+            float error_yaw = desired_yaw - POSE[3]*180/PI;
+            int yaw_threshold = 4;
+            if(error_yaw > yaw_threshold || error_yaw < -yaw_threshold){
+                float control_action_yaw = kp_yaw * error_yaw;
+                if(control_action_yaw > 500) control_action_yaw = 500;
+                else if(control_action_yaw < -500) control_action_yaw = -500;
+                cmds[3] = 1500 - kp_yaw * control_action_yaw;
+            }
+        }
 
         /* Sending RC control messages*/
         sec = current_time.tv_sec - last_ctrl_tmr.tv_sec;
@@ -130,8 +149,25 @@ void* fc_main_thread(void* args)
             mocap_data[0] = mocap_data[0] + 1;
             mocap.pose = mocap_data;
             reb = client.sendData(mocap.id(),mocap.encode());
-            // client.sendMessageNoWait(mocap);
-            if(reb){}
+        }
+
+        /* Sending desired vector messages*/
+        sec = current_time.tv_sec - last_desVec_tmr.tv_sec;
+        usec = current_time.tv_usec - last_desVec_tmr.tv_usec; //this time is micro seconds
+        double desVec_time_elapsed = sec + usec*1e-6;
+        if(desVec_time_elapsed > DESVEC_TIME_PERIOD){ //will go through if desired_vector_mode != 0
+            gettimeofday(&last_desVec_tmr,0);
+            desired_vector.vec = desired_vec;
+            reb = client.sendData(desired_vector.id(),desired_vector.encode());
+
+            // printf("desired list:  \n");
+            // for (std::vector<uint16_t>::const_iterator j = desired_vec.begin(); j != desired_vec.end(); ++j)
+            // std::cout << *j << ' ';
+            // printf("\n");
+            // for (i = 0; i < 7; i++){
+            //     printf("%d\t",DESIRED_LIST[i]);
+            // }
+            // printf("\n");
         }
 
         /* Collecting data and debug messages*/
@@ -236,7 +272,7 @@ int fc_land(buzzvm_t vm)
 
 int fc_takeoff(buzzvm_t vm)
 {
-    CMDS[2] = 1420;
+    CMDS[2] = takeoff_thrust;
     return buzzvm_ret0(vm);
 }
 
@@ -264,11 +300,73 @@ int fc_activate_mocap(buzzvm_t vm)
     return buzzvm_ret0(vm);
 }
 
+int fc_activate_yaw_control(buzzvm_t vm)
+{
+    control_yaw_active = true;
+    return buzzvm_ret0(vm);
+}
+
 int fc_deactivate_mocap(buzzvm_t vm)
 {
     mocap_active = false;
     return buzzvm_ret0(vm);
 }
+
+int fc_deactivate_yaw_control(buzzvm_t vm)
+{
+    control_yaw_active = false;
+    return buzzvm_ret0(vm);
+}
+
+int fc_set_thrust(buzzvm_t vm)
+{
+    buzzvm_lnum_assert(vm, 1);
+    buzzvm_lload(vm, 1);
+    buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
+    takeoff_thrust = buzzvm_stack_at(vm, 1)->i.value;
+    return buzzvm_ret0(vm);
+}
+
+int fc_track_pos(buzzvm_t vm)
+{
+    desired_vector_mode = 1;
+    buzzvm_lnum_assert(vm, 3);
+    /* Push the vector components */
+    buzzvm_lload(vm, 1);
+    buzzvm_lload(vm, 2);
+    buzzvm_lload(vm, 3);
+    buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
+    buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+
+    // pthread_mutex_lock(&LOCK_CMDS);
+    DESIRED[0]=buzzvm_stack_at(vm, 3)->f.value; //x_desired
+    DESIRED[1]=buzzvm_stack_at(vm, 2)->f.value; //y_desired
+    DESIRED[2]=buzzvm_stack_at(vm, 1)->f.value; //z_desired
+
+    return buzzvm_ret0(vm);
+}            
+
+int fc_track_vel(buzzvm_t vm)
+{
+    desired_vector_mode = 2;
+    buzzvm_lnum_assert(vm, 3);
+    /* Push the vector components */
+    buzzvm_lload(vm, 1);
+    buzzvm_lload(vm, 2);
+    buzzvm_lload(vm, 3);
+    buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
+    buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+
+    // pthread_mutex_lock(&LOCK_CMDS);
+    DESIRED[0]=buzzvm_stack_at(vm, 3)->f.value; //x_desired
+    DESIRED[1]=buzzvm_stack_at(vm, 2)->f.value; //y_desired
+    DESIRED[2]=buzzvm_stack_at(vm, 1)->f.value; //z_desired
+
+    return buzzvm_ret0(vm);
+}
+
 
 
 int fc_wait(buzzvm_t vm)
@@ -354,7 +452,50 @@ void rotate_pose()
     // POS_ROT[2] = POSE[2];
 }
 
+void vec_to_list(){ //mode 0: poshold, 1: pos track, 2: vel track
+    DESIRED_LIST[0] = desired_vector_mode;
 
+    float phi = PI;
+    float theta = 0;
+    float psi = POSE[3]-10*PI/180.0;
+
+    Eigen::Matrix3d Rx;
+    Eigen::Matrix3d Ry;
+    Eigen::Matrix3d Rz;
+
+    Rx <<  1,               0,              0,
+           0,               cos(phi),     -sin(phi),
+           0,               sin(phi),     cos(phi);
+
+    Ry <<  cos(theta),        0,             sin(theta),
+           0,                 1,               0,
+           -sin(theta),       0,             cos(theta);
+
+    Rz <<  cos(psi),     -sin(psi),     0,
+           sin(psi),     cos(psi),      0,
+           0,               0,          1;
+
+    Eigen::Vector3d v(DESIRED[0],DESIRED[1],DESIRED[2]);
+    Eigen::Matrix3d R = Rx * Ry * Rz;
+    Eigen::Vector3d V = R * v;
+
+    int i;
+    // for(i = 0; i < 3; i++){
+    //     DESIRED_LIST[i+1] = abs(DESIRED[i]);
+    //     if(DESIRED[i] < 0){
+    //         DESIRED_LIST[1+3+i] = 0;
+    //     }
+    // }
+    for(i = 0; i < 3; i++){
+        DESIRED_LIST[i+1] = abs(V[i]);
+        if(V[i] < 0){
+            DESIRED_LIST[1+3+i] = 0;
+        }
+        else{
+            DESIRED_LIST[1+3+i] = 1;
+        }
+    }
+}
 
 int fc_dummy(buzzvm_t vm)
 {

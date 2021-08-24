@@ -10,31 +10,26 @@ extern "C"
 {
 #endif
 
-// #define CTRL_TIME_PERIOD 0.01
-// #define SENS_TIME_PERIOD 1
-// #define SERIAL_DEVICE "/dev/ttyS0"
-// #define BAUDRATE 115200
+/*this function returns a random number between 0-1*/
+int random_number_generator(buzzvm_t vm){
+    static bool first_time_call = true;
+    float random_value = 0;
+    int rnd = 0;
 
-// // Defining the fc client
-// msp::client::Client fc;    
-// int aaa = 10;
+    if(first_time_call){
+        first_time_call = false;
+        srand (time(NULL));
+    }
+    
+    rnd = rand()%1000+1;
+    random_value = rnd / 1000.0;
+    
+    buzzvm_pushs(vm, buzzvm_string_register(vm, "random_val", 1));
+    buzzvm_pushf(vm,random_value);
+    buzzvm_gstore(vm);
 
-// void setup_fc(buzzvm_t vm)
-// {
-//     int b = aaa + 1;
-//     fc.setLoggingLevel(msp::client::LoggingLevel::SILENT);
-//     fc.setVariant(msp::FirmwareVariant::INAV);
-//     fc.start(SERIAL_DEVICE, BAUDRATE);
-//     msp::FirmwareVariant fw_variant = msp::FirmwareVariant::INAV;
-// }
-
-// void reset_fc(buzzvm_t vm)
-// {
-//     msp::ByteVector  reboot_data = msp::ByteVector(0);
-//     bool reb = fc.sendData(msp::ID::MSP_REBOOT,reboot_data);
-//     if(reb) std::cout<<"reboot successful\r\n";
-//     // std::this_thread::sleep_for(std::chrono::seconds(10));
-// }
+    return buzzvm_ret0(vm);
+}
 
 int qp_solver(buzzvm_t vm)
 {
