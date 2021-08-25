@@ -19,6 +19,7 @@ to the FC to pursue position or velocity*/
 
 float CMDS[6] = {1500,1500,900,1500,1000,1900}; //Roll, Pitch, Thrust, Yaw, Aux1, Aux2
 float POSE[4] = {10,25,39,40};                  //position: x,y,z and Yaw wrt mocap frame
+float old_pose[4] = {0,0,0,0};
 float DESIRED[4] = {0,0,0};                   //flag (0: poshold or 1:pos track or 2: vel track), x_des, y_des, z_des
 float POS_ROT[4] = {10,25,39,40};
 uint16_t DESIRED_LIST[7] = {0,0,0,0,1,1,1};
@@ -31,7 +32,8 @@ int desired_vector_mode = 0;
 float desired_yaw = 0;
 int takeoff_thrust = 1420;
 int DONE = 0;
-
+int invalid_mocap_couter = 0;
+bool invalid_mocap_flag = false;
 static pthread_t FC_THREAD;
 // static pthread_mutex_t LOCK_CMDS;
 
@@ -116,6 +118,7 @@ void* fc_main_thread(void* args)
         // if(DT > 15 && DT < 20)cmds[4] = 1800;
         // else cmds[4] = 1000;
 
+        //apply yaw control in case it is activated
         if(control_yaw_active){
             float kp_yaw = 1;
             float error_yaw = desired_yaw - POSE[3]*180/PI;
@@ -126,6 +129,29 @@ void* fc_main_thread(void* args)
                 else if(control_action_yaw < -500) control_action_yaw = -500;
                 cmds[3] = 1500 - kp_yaw * control_action_yaw;
             }
+        }
+
+        //check on the validity of the mocap ... only check when mocap is activated in the step function
+        if(mocap_active){
+            float delta_pose_x = POSE[0] - old_pose[0];
+            float delta_pose_y = POSE[1] - old_pose[1];
+            float eps = 0.0000001;
+            //if the difference between old and new readings is very small, then readings are being repetitve
+            if(delta_pose_x == 0  && delta_pose_y == 0 ){
+                invalid_mocap_couter++;
+            }
+            else{
+                invalid_mocap_couter = 0;
+            }
+            //if we have more than a certain number of repetitions
+            if(invalid_mocap_couter > 10000000){
+                invalid_mocap_flag = true;
+                printf("The mocap readings recieved are currently invalid!!\t %d\n",invalid_mocap_couter);
+            }
+            else invalid_mocap_flag = false;
+
+            old_pose[0] = POSE[0];
+            old_pose[1] = POSE[1];
         }
 
         /* Sending RC control messages*/
@@ -146,7 +172,9 @@ void* fc_main_thread(void* args)
         double mocap_time_elapsed = sec + usec*1e-6;
         if(mocap_time_elapsed > MOCAP_TIME_PERIOD && mocap_active){
             gettimeofday(&last_mocap_tmr,0);
-            mocap_data[0] = mocap_data[0] + 1;
+            //increment the counter that activates mocap in case the readings are not repetitive
+            //this should fall back to onboard sensors if mocap is invalid
+            if(!invalid_mocap_flag) mocap_data[0] = mocap_data[0] + 1;
             mocap.pose = mocap_data;
             reb = client.sendData(mocap.id(),mocap.encode());
         }
@@ -157,6 +185,11 @@ void* fc_main_thread(void* args)
         double desVec_time_elapsed = sec + usec*1e-6;
         if(desVec_time_elapsed > DESVEC_TIME_PERIOD){ //will go through if desired_vector_mode != 0
             gettimeofday(&last_desVec_tmr,0);
+            if(invalid_mocap_flag){
+                desired_vec[0] = 0; //if mocap is invalid, we don't want to follow speed or position
+                desired_vec[1] = 0;
+                desired_vec[2] = 0;
+            }
             desired_vector.vec = desired_vec;
             reb = client.sendData(desired_vector.id(),desired_vector.encode());
 
