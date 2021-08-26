@@ -51,6 +51,7 @@ enum class ID : uint16_t {
     MSP_SET_RTH_AND_LAND_CONFIG        = 22,
     MSP_FW_CONFIG                      = 23,
     MSP_SET_FW_CONFIG                  = 24,
+    MSP_COGNIFLY_ANALOG                = 25,
     MSP_MOCAP                          = 30,  // for recieving mocap pos
     MSP_DES_POS                        = 31,  // for setting desired pos or vel (wrt mocap)
     MSP_BATTERY_CONFIG                 = 32,  // not avaialable in iNav
@@ -3153,6 +3154,35 @@ struct Altitude : public Message {
         return s;
     }
 };
+
+
+// MSP_COGNIFLY_ANALOG: 25
+struct CogniflyAnalog : public Message {
+    CogniflyAnalog(FirmwareVariant v) : Message(v) {}
+
+    virtual ID id() const override { return ID::MSP_COGNIFLY_ANALOG; }
+
+    Value<float> vbat;           // Volt
+    Value<float> powerMeterSum;  // Ah
+    Value<float> amperage;  // Ampere
+
+    virtual bool decode(const ByteVector& data) override {
+        bool rc = true;
+        rc &= data.unpack<uint16_t>(vbat, 100);
+        rc &= data.unpack<uint16_t>(powerMeterSum, 1000);
+        rc &= data.unpack<int8_t>(amperage, 100);
+        return rc;
+    }
+
+    virtual std::ostream& print(std::ostream& s) const override {
+        s << "#Analog:" << std::endl;
+        s << " Battery Voltage: " << vbat << " V" << std::endl;
+        s << " Current: " << amperage << " A" << std::endl;
+        s << " Power consumption: " << powerMeterSum << " Ah" << std::endl;
+        return s;
+    }
+};
+
 
 // MSP_ANALOG: 110
 struct Analog : public Message {

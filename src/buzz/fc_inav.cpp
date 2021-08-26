@@ -65,9 +65,11 @@ void* fc_main_thread(void* args)
     /*setting up messages we need*/
     msp::msg::Debug debug(fw_variant);    //for debug messages in case we need them
     msp::msg::SetMocap mocap(fw_variant); //for sending the mocap data to fc 
-    msp::msg::Analog analog(fw_variant);  //for voltage reading
+    // msp::msg::Analog analog(fw_variant);  //for voltage reading
     msp::msg::SetRawRc rc(fw_variant);    //for sending commands to fc
     msp::msg::SetDesVec desired_vector(fw_variant); //for sending desired position or velocity
+    msp::msg::CogniflyAnalog cognifly_analog(fw_variant);
+    // msp::msg::InavAnalog inav_analog(fw_variant);
 
     cmds[2] = 900;      //low thrust
     cmds[4] = 1000;     //motors not armed initially
@@ -211,10 +213,16 @@ void* fc_main_thread(void* args)
             gettimeofday(&last_sens_tmr,0);
             std::cout<<DT<<std::endl;
             // printf("POSE X:%0.2f\tY:%0.2f\tTheta:%0.2f\n",POSE[0],POSE[1],POSE[3]);
-            if(client.sendMessage(analog) == 1){
-                fc_voltage = analog.vbat;
-                // std::cout << "time: " << DT << "  voltage is  "<<analog.vbat<<std::endl;  
+            // if(client.sendMessage(analog) == 1){
+            //     fc_voltage = analog.vbat;
+            //     // std::cout << "time: " << DT << "  voltage is  "<<analog.vbat<<std::endl;  
+            // }
+
+            if(client.sendMessage(cognifly_analog) == 1){
+                fc_voltage = cognifly_analog.vbat;
+                // std::cout << "time: " << DT << "  voltage is  "<<cognifly_analog.vbat<<std::endl;  
             }
+            
             if(client.sendMessage(debug) == 1) {
                 // std::cout<<"mocap data to be sent "<<mocap_data[1]<<"  "<<mocap_data[2]<<"  "<<mocap_data[3]<<"   "<<mocap_data[4]<<std::endl;
                 std::cout << "#Debug message:" << std::endl;
