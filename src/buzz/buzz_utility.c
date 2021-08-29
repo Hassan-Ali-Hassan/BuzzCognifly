@@ -185,7 +185,7 @@ int buzz_listen_tcp() {
    /* Set up the server name */
    server.sin_family      = AF_INET;                /* Internet Domain    */
    server.sin_port        = htons(4242);            /* Server Port        */
-   server.sin_addr.s_addr = inet_addr("127.0.0.1"); /* Server's Address   */
+   server.sin_addr.s_addr = inet_addr(SERVER_ADDR); /* Server's Address   */
 
    sprintf(TCP_LIST_STREAM_PORT, "%d", 24580 + ROBOT_ID) ;
    printf(TCP_LIST_STREAM_PORT);
@@ -196,7 +196,7 @@ int buzz_listen_tcp() {
    struct addrinfo hints, *ifaceinfo;
    memset(&hints, 0, sizeof(hints));
    hints.ai_family = AF_INET;       /* Only IPv4 is accepted */
-   hints.ai_socktype = SOCK_STREAM; /* TCP socket */
+   hints.ai_socktype = SOCK_DGRAM; /* TCP socket */
    hints.ai_flags = AI_PASSIVE;     /* Necessary for bind() later on */
    retval = getaddrinfo(NULL,
                         TCP_LIST_STREAM_PORT,
@@ -208,15 +208,15 @@ int buzz_listen_tcp() {
       return 0;
    }
    /* Bind on the first interface available */
-   TCP_LIST_STREAM = -1;
+   TCP_COMM_STREAM = -1;
    struct addrinfo* iface = NULL;
    for(iface = ifaceinfo;
        (iface != NULL) && (TCP_LIST_STREAM == -1);
        iface = iface->ai_next) {
-      TCP_LIST_STREAM = socket(iface->ai_family,
+      TCP_COMM_STREAM = socket(iface->ai_family,
                                iface->ai_socktype,
                                iface->ai_protocol);
-      if(TCP_LIST_STREAM > 0) {
+      if(TCP_COMM_STREAM > 0) {
          int true = 1;
          if((setsockopt(TCP_COMM_STREAM,
                         SOL_SOCKET,
@@ -227,7 +227,7 @@ int buzz_listen_tcp() {
             (bind(TCP_COMM_STREAM,
                   iface->ai_addr,
                   iface->ai_addrlen) == -1)) {
-            close(TCP_COMM_STREAM);
+            close(TCP_LIST_STREAM);
             TCP_COMM_STREAM = -1;
          }
       }
@@ -250,6 +250,7 @@ int buzz_listen_tcp() {
    }
    return 1;
 }
+
 
 int buzz_listen_bt() {
    return 0;

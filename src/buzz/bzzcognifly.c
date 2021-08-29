@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
      ROBOT_ID = strtol(argv[5], &endptr, 10);   
 
    // SERVER
-   server = "127.0.0.1";
+   SERVER_ADDR = "127.0.0.1";
    if(argc >= 7)
      SERVER_ADDR = argv[6];
 
