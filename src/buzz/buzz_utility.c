@@ -604,7 +604,7 @@ void buzz_script_step() {
    // printf("value of x and y are: %0.2f\t %0.2f\t %0.2f\n",abs_x,abs_y,abs_theta);
    POSE[0] = abs_x;
    POSE[1] = abs_y;
-   POSE[2] = 45.0; //just a dummy value in cm, to be fixed later by assigning actual z value.
+   POSE[2] = abs_z; //just a dummy value in cm, to be fixed later by assigning actual z value.
    POSE[3] = abs_theta;
    
    // pthread_mutex_lock(&camera_mutex);
