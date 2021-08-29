@@ -218,47 +218,27 @@ int buzz_listen_tcp() {
                                iface->ai_protocol);
       if(TCP_LIST_STREAM > 0) {
          int true = 1;
-         if((setsockopt(TCP_LIST_STREAM,
+         if((setsockopt(TCP_COMM_STREAM,
                         SOL_SOCKET,
                         SO_REUSEADDR,
                         &true,
                         sizeof(true)) != -1)
             &&
-            (bind(TCP_LIST_STREAM,
+            (bind(TCP_COMM_STREAM,
                   iface->ai_addr,
                   iface->ai_addrlen) == -1)) {
-            close(TCP_LIST_STREAM);
-            TCP_LIST_STREAM = -1;
+            close(TCP_COMM_STREAM);
+            TCP_COMM_STREAM = -1;
          }
       }
    }
    freeaddrinfo(ifaceinfo);
-   if(TCP_LIST_STREAM == -1) {
+   if(TCP_COMM_STREAM == -1) {
       fprintf(stderr, "Can't bind socket to any interface\n");
       return 0;
    }
    /* Listen on the socket */
-   fprintf(stdout, "Listening on port " TCP_LIST_STREAM_PORT "...\n");
-   if(listen(TCP_LIST_STREAM, 1) == -1) {
-      close(TCP_LIST_STREAM);
-      TCP_LIST_STREAM = -1;
-      fprintf(stderr, "Can't listen on the socket: %s\n",
-              strerror(errno));
-      return 0;
-   }
-   /* Accept incoming connection */
-   struct sockaddr addr;
-   socklen_t addrlen = sizeof(addr);
-   TCP_COMM_STREAM = accept(TCP_LIST_STREAM, &addr, &addrlen);
-   if(TCP_COMM_STREAM == -1) {
-      close(TCP_LIST_STREAM);
-      TCP_LIST_STREAM = -1;
-      fprintf(stderr, "Error accepting connection: %s\n",
-              strerror(errno));
-      return 0;
-   }
-   fprintf(stdout, "Accepted connection from %s\n",
-           inet_ntoa(((struct sockaddr_in*)(&addr))->sin_addr));
+   fprintf(stdout, "Listening on port %d...\n",TCP_LIST_STREAM_PORT);
    /* Ready to communicate through TCP */
    STREAM_SEND = buzz_stream_send_tcp;
    STREAM_SEND_BUF = (uint8_t*)malloc(MSG_SIZE);
@@ -270,7 +250,6 @@ int buzz_listen_tcp() {
    }
    return 1;
 }
-
 
 int buzz_listen_bt() {
    return 0;
