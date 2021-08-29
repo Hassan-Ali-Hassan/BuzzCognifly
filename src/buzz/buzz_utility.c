@@ -31,13 +31,11 @@ static uint8_t*    STREAM_SEND_BUF = NULL;
 static int         blob_pos[4];
 static int         enable_cam=0;
 static int         MSG_RANGE = 1.0;  //Max accepted range for msgs (m)
-// robot ID
-int                ROBOT_ID        = -1;
-// absolute positioning
-float abs_x = 0.0, abs_y = 0.0, abs_theta = 0.0;
-// int DONE = 0;
+static char        TCP_LIST_STREAM_PORT[10];
 
-#define TCP_LIST_STREAM_PORT "24580"
+// absolute positioning
+float abs_x = 0.0, abs_y = 0.0, abs_z = 0.0, abs_theta = 0.0;
+
 #define IDOFFSET 0
 
 /* Pointer to a function that sends a message on the stream */
@@ -80,18 +78,18 @@ struct incoming_packet_s {
 static struct incoming_packet_s* PACKETS_FIRST = NULL;
 static struct incoming_packet_s* PACKETS_LAST  = NULL;
 
-void incoming_packet_add(int id, const uint8_t* pl) {
+static struct sockaddr_in server;
+
+void incoming_packet_add(uint16_t id, const uint8_t* pl) {
   // check if the packet is from the current robot
   // if so, extract the absolute position data, and drop the package
-//   int packet_from = 0;
-//   int offset = sizeof(float) * 3;
-//   memcpy(&packet_from, pl + offset, sizeof(int));
-//   printf("Packet from: %d\t ROBOT_ID: %d\t id: %d\n", packet_from,ROBOT_ID,id);
   if(id == ROBOT_ID){
     int offset = 0;
     memcpy(&abs_x, pl + offset, sizeof(float));
     offset += sizeof(float);
     memcpy(&abs_y, pl + offset, sizeof(float));
+    offset += sizeof(float);
+    memcpy(&abs_z, pl + offset, sizeof(float));
     offset += sizeof(float);
     memcpy(&abs_theta, pl + offset, sizeof(float));
     return;
@@ -138,14 +136,12 @@ void* buzz_stream_incoming_thread_tcp(void* args) {
          if(cur < 0) {
             fprintf(stderr, "Error receiving data: %s\n", strerror(errno));
             free(buf);
-            kh4_done();
             return NULL;
          }
          if(cur == 0) {
             fprintf(stderr, "Connection closed by peer\n");
             free(buf);
             DONE = 1;
-            kh4_done();
             return NULL;
          }
          left -= cur;
@@ -169,12 +165,10 @@ void buzz_stream_send_tcp() {
       /* fprintf(stderr, "[DEBUG] Sent %zd bytes", cur); */
       if(cur < 0) {
          fprintf(stderr, "Error receiving data: %s\n", strerror(errno));
-         kh4_done();
          exit(1);
       }
       if(cur == 0) {
          fprintf(stderr, "Connection closed by peer\n");
-         kh4_done();
          exit(1);
       }
       left -= cur;
@@ -187,6 +181,15 @@ void buzz_stream_send_tcp() {
 /****************************************/
 
 int buzz_listen_tcp() {
+
+   /* Set up the server name */
+   server.sin_family      = AF_INET;                /* Internet Domain    */
+   server.sin_port        = htons(4242);            /* Server Port        */
+   server.sin_addr.s_addr = inet_addr("127.0.0.1"); /* Server's Address   */
+
+   sprintf(TCP_LIST_STREAM_PORT, "%d", 24580 + ROBOT_ID) ;
+   printf(TCP_LIST_STREAM_PORT);
+  
    /* Used to store the return value of the network function calls */
    int retval;
    /* Get information on the available interfaces */
@@ -649,19 +652,15 @@ void buzz_script_step() {
    *(uint16_t*)STREAM_SEND_BUF = VM->robot;
    ssize_t tot = sizeof(uint16_t);
       /* add local position*/
-      float x=0.0,y=0.0,t=0.0;
-      memcpy(STREAM_SEND_BUF + tot, &x, sizeof(float));
-      tot += sizeof(float);
-      memcpy(STREAM_SEND_BUF + tot, &y, sizeof(float));
-      tot += sizeof(float);
-      memcpy(STREAM_SEND_BUF + tot, &t, sizeof(float));
-      tot += sizeof(float);
-
-      // reserved for absolute positioning (extracted)
-    //   tot += sizeof(int);
-    //   tot += sizeof(float);
-    //   tot += sizeof(float);
-    //   tot += sizeof(float);
+   float x=1.0,y=2.0,z=3.0,t=4.0;
+   memcpy(STREAM_SEND_BUF + tot, &x, sizeof(float));
+   tot += sizeof(float);
+   memcpy(STREAM_SEND_BUF + tot, &y, sizeof(float));
+   tot += sizeof(float);
+   memcpy(STREAM_SEND_BUF + tot, &z, sizeof(float));
+   tot += sizeof(float);
+   memcpy(STREAM_SEND_BUF + tot, &t, sizeof(float));
+   tot += sizeof(float);
 
       //fprintf(stdout,"sending neighbors position: %.2f,%.2f,%.2f\n",x,y,t);
    do {

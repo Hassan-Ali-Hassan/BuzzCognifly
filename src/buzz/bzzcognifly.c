@@ -20,6 +20,8 @@ void usage(const char* path, int status) {
    fprintf(stderr, "  msg_size      The message size in bytes\n");
    fprintf(stderr, "  file.bo       The Buzz bytecode file\n");
    fprintf(stderr, "  file.bdbg     The Buzz debug file\n");
+   fprintf(stderr, "  robotid       The robot id, default 0\n");
+   fprintf(stderr, "  server        The commhub server, default localhost\n");
    fprintf(stderr, "  frequency     The Buzz step frequency (default 10Hz)\n\n");
    exit(status);
 }
@@ -50,10 +52,21 @@ int main(int argc, char** argv) {
       fprintf(stderr, "%s: invalid value %d for message size\n", argv[0], msg_sz);
       return 0;
    }
+
+   // ROBOT ID
+   ROBOT_ID = 0;
+   if(argc >= 6)
+     ROBOT_ID = strtol(argv[5], &endptr, 10);   
+
+   // SERVER
+   server = "127.0.0.1";
+   if(argc >= 7)
+     SERVER_ADDR = argv[6];
+
    // frequency
-     FREQUENCY = 100000;
-   if(argc == 6)
-     FREQUENCY = 1000000 / strtol(argv[5], &endptr, 10);
+   FREQUENCY = 100000;
+   if(argc == 8)
+     FREQUENCY = 1000000 / strtol(argv[6], &endptr, 10);
    /* The bytecode filename */
    char* bcfname = argv[3];
    /* The debugging information file name */
