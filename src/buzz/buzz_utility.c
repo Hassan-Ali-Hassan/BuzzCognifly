@@ -41,19 +41,19 @@ float abs_x = 0.0, abs_y = 0.0, abs_z = 0.0, abs_theta = 0.0;
 /* Pointer to a function that sends a message on the stream */
 static void (*STREAM_SEND)() = NULL;
 // int buzzutility_enable_camera(buzzvm_t vm);
-int buzzutility_enable_us(buzzvm_t vm);
-int buzzutility_play_sound(buzzvm_t vm);
+// int buzzutility_enable_us(buzzvm_t vm);
+// int buzzutility_play_sound(buzzvm_t vm);
 
 /* PThread handle to manage incoming messages */
 static pthread_t INCOMING_MSG_THREAD;
 /* PThread handle to manage blob center */
-static pthread_t blob_manage;
+// static pthread_t blob_manage;
 /* PThread handle to blink the LEDs */
-static pthread_t blink_thread;
+// static pthread_t blink_thread;
 
-void set_enable_cam(int cam_enable);
+// void set_enable_cam(int cam_enable);
 
-int get_enable_cam();
+// int get_enable_cam();
 /****************************************/
 /****************************************/
 
@@ -271,6 +271,7 @@ int buzz_listen_tcp() {
    return 1;
 }
 
+
 int buzz_listen_bt() {
    return 0;
 }
@@ -387,9 +388,9 @@ static int buzz_register_hooks() {
 /*   buzzvm_pushs(VM,  buzzvm_string_register(VM, "enable_camera", 1));
    buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzutility_enable_camera));
    buzzvm_gstore(VM); */
-   buzzvm_pushs(VM,  buzzvm_string_register(VM, "enable_us", 1));
-   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzutility_enable_us));
-   buzzvm_gstore(VM);
+   // buzzvm_pushs(VM,  buzzvm_string_register(VM, "enable_us", 1));
+   // buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzutility_enable_us));
+   // buzzvm_gstore(VM);
 /*   buzzvm_pushs(VM,  buzzvm_string_register(VM, "play_sound", 1));
    buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzutility_play_sound));
    buzzvm_gstore(VM); */
@@ -729,14 +730,14 @@ void buzz_script_destroy() {
    pthread_join(INCOMING_MSG_THREAD, NULL);
    /*camera thread*/
 //printf("PRECANCEL\n");
-   pthread_cancel(blob_manage);
+   // pthread_cancel(blob_manage);
 //printf("PREJOIN\n");
-   pthread_join(blob_manage, NULL);
+   // pthread_join(blob_manage, NULL);
 //printf("AFTERJOIN\n");
    //stop_camera();
 //printf("STOPCAM\n");
-   pthread_cancel(blink_thread);
-   pthread_join(blink_thread, NULL);
+   // pthread_cancel(blink_thread);
+   // pthread_join(blink_thread, NULL);
 
    /* Get rid of stream buffer */
    free(STREAM_SEND_BUF);
@@ -763,24 +764,24 @@ int buzz_script_done() {
    return VM->state != BUZZVM_STATE_READY;
 }
 
-int buzzutility_enable_us(buzzvm_t vm){
-   buzzvm_lnum_assert(vm, 1);
-   buzzvm_lload(vm, 1); /* 0 disable 1 enable */
-   buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
-   buzzkh4_enable_us(vm, buzzvm_stack_at(vm, 1)->i.value);
-   return buzzvm_ret0(vm);
-}
+// int buzzutility_enable_us(buzzvm_t vm){
+//    buzzvm_lnum_assert(vm, 1);
+//    buzzvm_lload(vm, 1); /* 0 disable 1 enable */
+//    buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
+//    buzzkh4_enable_us(vm, buzzvm_stack_at(vm, 1)->i.value);
+//    return buzzvm_ret0(vm);
+// }
 
-int buzzutility_play_sound(buzzvm_t vm){
-  buzzvm_lnum_assert(vm, 2);
-  buzzvm_lload(vm, 1); /* filename */
-  buzzvm_lload(vm, 2); /* volume */
-  buzzvm_type_assert(vm, 2, BUZZTYPE_STRING);
-  buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
-  /* buzzkh4_play_sound(vm,  buzzvm_stack_at(vm, 2)->s.value.str,
-                          buzzvm_stack_at(vm, 1)->i.value); */
-  return buzzvm_ret0(vm);
-}
+// int buzzutility_play_sound(buzzvm_t vm){
+//   buzzvm_lnum_assert(vm, 2);
+//   buzzvm_lload(vm, 1); /* filename */
+//   buzzvm_lload(vm, 2); /* volume */
+//   buzzvm_type_assert(vm, 2, BUZZTYPE_STRING);
+//   buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
+//   /* buzzkh4_play_sound(vm,  buzzvm_stack_at(vm, 2)->s.value.str,
+//                           buzzvm_stack_at(vm, 1)->i.value); */
+//   return buzzvm_ret0(vm);
+// }
 
 /****************************************/
 /****************************************/
