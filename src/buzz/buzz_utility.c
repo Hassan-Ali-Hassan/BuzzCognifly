@@ -161,7 +161,7 @@ void buzz_stream_send_tcp() {
    left = MSG_SIZE;
    tot = 0;
    while(left > 0) {
-      cur = send(TCP_COMM_STREAM, STREAM_SEND_BUF + tot, left, 0);
+     cur = sendto(TCP_COMM_STREAM, STREAM_SEND_BUF + tot, left, 0,  (struct sockaddr *)&server, sizeof(server));
       /* fprintf(stderr, "[DEBUG] Sent %zd bytes", cur); */
       if(cur < 0) {
          fprintf(stderr, "Error receiving data: %s\n", strerror(errno));
@@ -238,7 +238,7 @@ int buzz_listen_tcp() {
       return 0;
    }
    /* Listen on the socket */
-   fprintf(stdout, "Listening on port %d...\n",TCP_LIST_STREAM_PORT);
+   fprintf(stdout, "Listening on port %s...\n",TCP_LIST_STREAM_PORT);
    /* Ready to communicate through TCP */
    STREAM_SEND = buzz_stream_send_tcp;
    STREAM_SEND_BUF = (uint8_t*)malloc(MSG_SIZE);
@@ -409,10 +409,8 @@ int buzz_script_set(const char* bo_filename,
    gethostname(hstnm, 30);
    // printf("the hostname is: %s\n",hstnm);
    /* Make numeric id from hostname */
-   /* NOTE: here we assume that the hostname is in the format Knn (e.g. K01) */
-   ROBOT_ID = strtol(hstnm + 1, NULL, 10) + IDOFFSET;	//CHANGES FOR OFFROBOTS TESTS!!!!
-   //the previous line we put hstnm+1 so the input will bypass the K in the hostname
-   
+   /* NOTE: here we assume that the hostname is in the format Knn */
+   //ROBOT_ID = 4; //strtol(hstnm + 1, NULL, 10) + IDOFFSET;	//CHANGES FOR OFFROBOTS TESTS!!!!
    /* Reset the Buzz VM */
    if(VM){
      buzzvm_destroy(&VM);
@@ -598,10 +596,10 @@ void buzz_script_step() {
    /*
     * Update sensors
     */
-   buzzkh4_update_battery(VM);
-   buzzkh4_update_ir(VM);
-   buzzkh4_update_ir_filtered(VM);
-   buzzkh4_update_us(VM);
+   /* buzzkh4_update_battery(VM); */
+   /* buzzkh4_update_ir(VM); */
+   /* buzzkh4_update_ir_filtered(VM); */
+   /* buzzkh4_update_us(VM); */
    buzzkh4_abs_position(VM, abs_x, abs_y, abs_theta);
    // printf("value of x and y are: %0.2f\t %0.2f\t %0.2f\n",abs_x,abs_y,abs_theta);
    POSE[0] = abs_x;
