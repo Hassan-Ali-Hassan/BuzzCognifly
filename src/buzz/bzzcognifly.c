@@ -59,15 +59,15 @@ int main(int argc, char** argv) {
      RID = strtol(argv[5], &endptr, 10);   
 
    // SERVER
-   //SERVER_ADDR = "127.0.0.1";
-   SERVER_ADDR = "192.168.2.101";
-   //if(argc >= 6)
-     //SERVER_ADDR = argv[5];
+   SERVER_ADDR = "127.0.0.1";
+   // SERVER_ADDR = "192.168.2.101";
+   if(argc >= 7)
+     SERVER_ADDR = argv[6];
 
    // frequency
    FREQUENCY = 100000;
-   if(argc == 6)
-     FREQUENCY = 1000000 / strtol(argv[5], &endptr, 10);
+   if(argc == 8)
+     FREQUENCY = 1000000 / strtol(argv[7], &endptr, 10);
    /* The bytecode filename */
    char* bcfname = argv[3];
    /* The debugging information file name */

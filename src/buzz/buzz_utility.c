@@ -408,10 +408,10 @@ int buzz_script_set(const char* bo_filename,
    /* Get hostname */
    char hstnm[30];
    gethostname(hstnm, 30);
-   printf("the hostname is: %s\n",hstnm);
+   // printf("the hostname is: %s\n",hstnm);
    /* Make numeric id from hostname */
    /* NOTE: here we assume that the hostname is in the format Knn */
-   ROBOT_ID = strtol(hstnm + 1, NULL, 10) + IDOFFSET;	//CHANGES FOR OFFROBOTS TESTS!!!!
+   // ROBOT_ID = strtol(hstnm + 1, NULL, 10) + IDOFFSET;	//CHANGES FOR OFFROBOTS TESTS!!!!
    printf("robot id is %d\n",ROBOT_ID);
    /* Reset the Buzz VM */
    if(VM){
