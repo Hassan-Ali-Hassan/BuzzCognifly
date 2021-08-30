@@ -188,8 +188,7 @@ int buzz_listen_tcp() {
    server.sin_addr.s_addr = inet_addr(SERVER_ADDR); /* Server's Address   */
 
    sprintf(TCP_LIST_STREAM_PORT, "%d", 24580 + ROBOT_ID) ;
-   printf(TCP_LIST_STREAM_PORT);
-  
+     
    /* Used to store the return value of the network function calls */
    int retval;
    /* Get information on the available interfaces */
