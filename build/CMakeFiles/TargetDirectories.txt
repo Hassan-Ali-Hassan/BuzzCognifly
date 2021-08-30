@@ -1,7 +1,0 @@
-/home/pi/BuzzCognifly/build/CMakeFiles/install/strip.dir
-/home/pi/BuzzCognifly/build/CMakeFiles/edit_cache.dir
-/home/pi/BuzzCognifly/build/CMakeFiles/bzzCognifly.dir
-/home/pi/BuzzCognifly/build/CMakeFiles/rebuild_cache.dir
-/home/pi/BuzzCognifly/build/CMakeFiles/list_install_components.dir
-/home/pi/BuzzCognifly/build/CMakeFiles/install.dir
-/home/pi/BuzzCognifly/build/CMakeFiles/install/local.dir
