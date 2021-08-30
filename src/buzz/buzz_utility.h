@@ -4,7 +4,7 @@
 
 extern int buzz_listen(const char* type, int msg_size);
 
-extern int buzz_script_set(const char* bo_filename, const char* bdbg_filename);
+extern int buzz_script_set(const char* bo_filename, const char* bdbg_filename,int robot_id);
 
 extern void buzz_script_step();
 

@@ -404,7 +404,8 @@ static int buzz_register_hooks() {
 /****************************************/
 
 int buzz_script_set(const char* bo_filename,
-                    const char* bdbg_filename) {
+                    const char* bdbg_filename,
+		    int robot_id) {
    /* Get hostname */
    char hstnm[30];
    gethostname(hstnm, 30);
@@ -412,7 +413,8 @@ int buzz_script_set(const char* bo_filename,
    /* Make numeric id from hostname */
    /* NOTE: here we assume that the hostname is in the format Knn */
    // ROBOT_ID = strtol(hstnm + 1, NULL, 10) + IDOFFSET;	//CHANGES FOR OFFROBOTS TESTS!!!!
-   printf("robot id is %d\n",ROBOT_ID);
+   printf("robot id is %d\n",robot_id);
+   ROBOT_ID = robot_id;
    /* Reset the Buzz VM */
    if(VM){
      buzzvm_destroy(&VM);
