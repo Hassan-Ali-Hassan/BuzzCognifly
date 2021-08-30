@@ -36,6 +36,8 @@ static char        TCP_LIST_STREAM_PORT[10];
 // absolute positioning
 float abs_x = 0.0, abs_y = 0.0, abs_z = 0.0, abs_theta = 0.0;
 
+static int ROBOT_ID;
+
 #define IDOFFSET 0
 
 /* Pointer to a function that sends a message on the stream */

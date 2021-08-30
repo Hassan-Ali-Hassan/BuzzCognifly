@@ -18,7 +18,7 @@ extern int buzz_script_done();
 
 // External parameters
 int FREQUENCY;
-int ROBOT_ID;
+//int ROBOT_ID;
 char* SERVER_ADDR;
 
 #endif

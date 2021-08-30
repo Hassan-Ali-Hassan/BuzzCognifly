@@ -54,9 +54,9 @@ int main(int argc, char** argv) {
    }
 
    // ROBOT ID
-   //ROBOT_ID = 0;
-   //if(argc >= 6)
-     //ROBOT_ID = strtol(argv[5], &endptr, 10);   
+   int RID = 0;
+   if(argc >= 6)
+     RID = strtol(argv[5], &endptr, 10);   
 
    // SERVER
    //SERVER_ADDR = "127.0.0.1";
@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
    // start_blink();
 
    /* Set the Buzz bytecode */
-   if(buzz_script_set(bcfname, dbgfname)) {
+   if(buzz_script_set(bcfname, dbgfname),RID) {
       static struct timeval t1, t2;
       /* Main loop */
       while(!done && !buzz_script_done()) {
