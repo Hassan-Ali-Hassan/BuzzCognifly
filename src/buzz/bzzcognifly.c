@@ -54,19 +54,20 @@ int main(int argc, char** argv) {
    }
 
    // ROBOT ID
-   ROBOT_ID = 0;
-   if(argc >= 6)
-     ROBOT_ID = strtol(argv[5], &endptr, 10);   
+   //ROBOT_ID = 0;
+   //if(argc >= 6)
+     //ROBOT_ID = strtol(argv[5], &endptr, 10);   
 
    // SERVER
-   SERVER_ADDR = "127.0.0.1";
-   if(argc >= 7)
-     SERVER_ADDR = argv[6];
+   //SERVER_ADDR = "127.0.0.1";
+   SERVER_ADDR = "192.168.2.101";
+   //if(argc >= 6)
+     //SERVER_ADDR = argv[5];
 
    // frequency
    FREQUENCY = 100000;
-   if(argc == 8)
-     FREQUENCY = 1000000 / strtol(argv[6], &endptr, 10);
+   if(argc == 6)
+     FREQUENCY = 1000000 / strtol(argv[5], &endptr, 10);
    /* The bytecode filename */
    char* bcfname = argv[3];
    /* The debugging information file name */

@@ -187,7 +187,8 @@ int buzz_listen_tcp() {
    server.sin_port        = htons(4242);            /* Server Port        */
    server.sin_addr.s_addr = inet_addr(SERVER_ADDR); /* Server's Address   */
 
-   sprintf(TCP_LIST_STREAM_PORT, "%d", 24580 + ROBOT_ID) ;
+   //sprintf(TCP_LIST_STREAM_PORT, "%d", 24580 + ROBOT_ID) ;
+   sprintf(TCP_LIST_STREAM_PORT, "%d", 4242) ;
    printf(TCP_LIST_STREAM_PORT);
   
    /* Used to store the return value of the network function calls */
@@ -407,10 +408,11 @@ int buzz_script_set(const char* bo_filename,
    /* Get hostname */
    char hstnm[30];
    gethostname(hstnm, 30);
-   // printf("the hostname is: %s\n",hstnm);
+   printf("the hostname is: %s\n",hstnm);
    /* Make numeric id from hostname */
    /* NOTE: here we assume that the hostname is in the format Knn */
-   //ROBOT_ID = 4; //strtol(hstnm + 1, NULL, 10) + IDOFFSET;	//CHANGES FOR OFFROBOTS TESTS!!!!
+   ROBOT_ID = strtol(hstnm + 1, NULL, 10) + IDOFFSET;	//CHANGES FOR OFFROBOTS TESTS!!!!
+   printf("robot id is %d\n",ROBOT_ID);
    /* Reset the Buzz VM */
    if(VM){
      buzzvm_destroy(&VM);

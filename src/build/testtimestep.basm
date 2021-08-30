@@ -1,0 +1,32 @@
+!3
+'iteration
+'init
+'step
+
+	pushs 1
+	pushcn @__label_1
+	gstore
+	pushs 2
+	pushcn @__label_2
+	gstore
+	nop
+
+@__label_0
+	pushs 0	|2,10,/home/beltrame/Projects/buzz/src/testing/testtimestep.bzz
+	pushi 1	|2,12,/home/beltrame/Projects/buzz/src/testing/testtimestep.bzz
+	gstore	|4,0,/home/beltrame/Projects/buzz/src/testing/testtimestep.bzz
+
+@__exitpoint	|0,1,(null)
+	done	|0,1,(null)
+
+@__label_1
+	ret0	|8,0,/home/beltrame/Projects/buzz/src/testing/testtimestep.bzz
+
+@__label_2
+	pushs 0	|10,14,/home/beltrame/Projects/buzz/src/testing/testtimestep.bzz
+	pushs 0	|10,25,/home/beltrame/Projects/buzz/src/testing/testtimestep.bzz
+	gload	|10,25,/home/beltrame/Projects/buzz/src/testing/testtimestep.bzz
+	pushi 10000	|10,26,/home/beltrame/Projects/buzz/src/testing/testtimestep.bzz
+	add	|12,0,/home/beltrame/Projects/buzz/src/testing/testtimestep.bzz
+	gstore	|12,0,/home/beltrame/Projects/buzz/src/testing/testtimestep.bzz
+	ret0	|0,1,(null)

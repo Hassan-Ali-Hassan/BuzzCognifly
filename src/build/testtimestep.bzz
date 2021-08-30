@@ -1,0 +1,20 @@
+
+iteration = 1
+
+function init()
+{
+    s = stigmergy.create(1)
+}
+
+function step() 
+{
+    iteration = iteration+10000
+    s.put('i', iteration)
+    log("ROBOT ", id, ": ", neighbors.count(), " neighbors")
+
+    neighbors.foreach(function(rid, data) {
+      log("ROBOT ", id, ": NEIGHBOR<id=", rid, ", dist=", data.distance, ", azimuth=", data.azimuth, ", elevation=", data.elevation, ">")
+    })
+    log("I am at: ", absolute_position.x, ", ", absolute_position.y, ", at: ", absolute_position.theta) # log(iteration)
+}
+

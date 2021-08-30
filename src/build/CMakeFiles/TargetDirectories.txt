@@ -1,0 +1,8 @@
+/home/pi/bzzcognifly/src/build/CMakeFiles/install/strip.dir
+/home/pi/bzzcognifly/src/build/CMakeFiles/install/local.dir
+/home/pi/bzzcognifly/src/build/CMakeFiles/bzzCognifly.dir
+/home/pi/bzzcognifly/src/build/CMakeFiles/rebuild_cache.dir
+/home/pi/bzzcognifly/src/build/CMakeFiles/list_install_components.dir
+/home/pi/bzzcognifly/src/build/CMakeFiles/mspclient.dir
+/home/pi/bzzcognifly/src/build/CMakeFiles/edit_cache.dir
+/home/pi/bzzcognifly/src/build/CMakeFiles/install.dir

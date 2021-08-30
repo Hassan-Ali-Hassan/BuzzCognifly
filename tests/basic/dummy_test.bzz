@@ -1,0 +1,50 @@
+
+
+
+#################################################
+### BUZZ FUNCTIONS ##############################
+#################################################
+
+# Executed at init time
+function init() {
+    counter = 1
+    #activate_mocap();
+    # wait(15.0)
+    log("welcome to init!")
+    
+    # log("arming motors")
+    # arm()
+    # wait(3.0)
+
+    # takeoff()
+    # wait(6.0)
+    # land()
+    # wait(3.0)
+
+    # log("disarming motors...")
+    # disarm()
+    # wait(3.0)
+}
+
+# Executed every time step
+function step() {
+    if(counter % 4 == 0){
+        # reset()
+    }
+    voltage()
+    #log(id)
+    log("hello world!  ",fc_voltage)
+    log("position:  ",pose.position.x,"  ",pose.position.y,"  ",pose.orientation.yaw*180/3.14)
+    # arm()
+    # wait(3.0)
+    # disarm()
+    # wait(3.0)
+    counter = counter + 1
+}
+
+# Executed once when the robot (or the simulator) is reset.
+function reset() {
+}
+# Execute at exit
+function destroy() {
+}
