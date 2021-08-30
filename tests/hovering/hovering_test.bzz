@@ -1,0 +1,84 @@
+
+
+
+#################################################
+### BUZZ FUNCTIONS ##############################
+#################################################
+
+# Executed at init time
+function init() {
+
+    #just a side note: there is no access to pose.position.x/y in the init function apparently
+    counter = 1
+    takeoff_flag = 1 # 1 if the drone is permitted to fly, 0 otherwise
+    landing_flag = 0 # 1 if the drone should land, 0 otherwise
+    optitrack_faulty = 0
+    mocap_active_flag = 0
+    yaw_control_flag = 0
+    arm_flag = 0
+    
+    # wait(1.0)
+    log("welcome to init!")
+
+    # log("arming motors")
+    # arm()
+    # wait(3.0)
+
+    # wait(6.0)
+    # land()
+    # wait(3.0)
+
+    # log("disarming motors...")
+    # disarm()
+    # wait(3.0)
+    t_start = time_stamp_ms(0.0)
+    old_time = t_start
+}
+
+# Executed every time step
+function step() {
+    current_time = time_stamp_ms(t_start)
+    dt = current_time - old_time
+    old_time = current_time
+
+    if(mocap_active_flag == 0 and current_time > 2){
+        log("MOCAP ACTIVATED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        activate_mocap()
+        mocap_active_flag = 1
+    }
+
+    if(arm_flag == 0 and current_time > 4){
+        log("armed")
+        arm()
+        arm_flag = 1
+    }
+
+    if(pose.position.x == 0 and pose.position.y == 0){
+        land()
+        log("bad optitrack readings")
+    }
+
+    if(takeoff_flag and current_time > 8.0){
+        log("waiting to take off~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...")
+        takeoff()
+        takeoff_flag = 0
+    }
+
+    if(yaw_control_flag == 0 and current_time > 12.0){
+        log("yaw control activated")
+        //activate_yaw_control()
+        yaw_control_flag = 1
+    }
+
+    voltage()
+    log("hello world!  ",fc_voltage)
+    log(current_time, "  position:  ",pose.position.x,"  ",pose.position.y,"  ",pose.orientation.yaw*180/3.14)
+    counter = counter + 1
+}
+
+# Executed once when the robot (or the simulator) is reset.
+function reset() {
+}
+# Execute at exit
+function destroy() {
+}
