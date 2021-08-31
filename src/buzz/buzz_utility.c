@@ -101,8 +101,8 @@ void incoming_packet_add(uint16_t id, const uint8_t* pl) {
   struct incoming_packet_s* p = (struct incoming_packet_s*)malloc(sizeof(struct incoming_packet_s));
   /* Fill in the data */
   p->id = id;
-  p->payload = malloc(MSG_SIZE - sizeof(uint8_t));
-  memcpy(p->payload, pl, MSG_SIZE - sizeof(uint8_t));
+  p->payload = malloc(MSG_SIZE - sizeof(uint16_t));
+  memcpy(p->payload, pl, MSG_SIZE - sizeof(uint16_t));
   //p->payload = malloc(MSG_SIZE);
   //memcpy(p->payload, pl, MSG_SIZE);
 
@@ -420,7 +420,7 @@ int buzz_script_set(const char* bo_filename,
      buzzvm_destroy(&VM);
    }
 
-   VM = buzzvm_new(ROBOT_ID);
+   VM = buzzvm_new(robot_id);
    /* Get rid of debug info */
    if(DBG_INFO) buzzdebug_destroy(&DBG_INFO);
    DBG_INFO = buzzdebug_new();
@@ -536,20 +536,17 @@ void buzz_script_step() {
       n = PACKETS_FIRST->next;
       /* Update Buzz neighbors information */
       uint8_t* pl = (uint8_t*)PACKETS_FIRST->payload;
-      float x=0.0,y=0.0,t=0.0;
+      float d=0.0,a=0.0,e=0.0;
       size_t tot = 0;
-      memcpy(&x, pl+tot, sizeof(float));
+      memcpy(&d, pl+tot, sizeof(float));
       tot += sizeof(float);
-      memcpy(&y, pl+tot, sizeof(float));
+      memcpy(&a, pl+tot, sizeof(float));
       tot += sizeof(float);
-      memcpy(&t, pl+tot, sizeof(float));
+      memcpy(&e, pl+tot, sizeof(float));
       tot += sizeof(float);
 
-      // reserved for absolute positioning (extracted)
-    //   tot += sizeof(int);
-    //   tot += sizeof(float);
-    //   tot += sizeof(float);
-    //   tot += sizeof(float);
+      // Skip the orientation
+      tot += sizeof(float);
 
       //if(x > MSG_RANGE) { // limit the msg range of the nieghbor
         buzzneighbors_add(VM, PACKETS_FIRST->id, x, y, t);
@@ -557,7 +554,7 @@ void buzz_script_step() {
         uint16_t msgsz;
         do {
            /* Get payload size */
-           msgsz = *(uint16_t*)(pl + tot); // <-- why would you do that? :/
+           msgsz = *(uint16_t*)(pl + tot); // Get message size
            tot += sizeof(uint16_t);
            /* fprintf(stderr, "[DEBUG]    msg size = %u, tot = %zu\n", msgsz, tot); */
            /* Make sure the message payload can be read */
@@ -630,19 +627,20 @@ void buzz_script_step() {
     * Broadcast messages
     */
    /* Prepare buffer */
+   buzzvm_process_outmsgs(VM);
+   
    // TODO: this remains
    memset(STREAM_SEND_BUF, 0, MSG_SIZE);
    *(uint16_t*)STREAM_SEND_BUF = VM->robot;
    ssize_t tot = sizeof(uint16_t);
       /* add local position*/
-   float x=1.0,y=2.0,z=3.0,t=4.0;
-   memcpy(STREAM_SEND_BUF + tot, &x, sizeof(float));
+   memcpy(STREAM_SEND_BUF + tot, &abs_x, sizeof(float));
    tot += sizeof(float);
-   memcpy(STREAM_SEND_BUF + tot, &y, sizeof(float));
+   memcpy(STREAM_SEND_BUF + tot, &abs_y, sizeof(float));
    tot += sizeof(float);
-   memcpy(STREAM_SEND_BUF + tot, &z, sizeof(float));
+   memcpy(STREAM_SEND_BUF + tot, &abs_z, sizeof(float));
    tot += sizeof(float);
-   memcpy(STREAM_SEND_BUF + tot, &t, sizeof(float));
+   memcpy(STREAM_SEND_BUF + tot, &abs_theta, sizeof(float));
    tot += sizeof(float);
 
       //fprintf(stdout,"sending neighbors position: %.2f,%.2f,%.2f\n",x,y,t);
@@ -673,21 +671,12 @@ void buzz_script_step() {
       buzzoutmsg_queue_next(VM);
       buzzmsg_payload_destroy(&m);
    } while(1);
-   /* fprintf(stderr, "[DEBUG] send id = %u, sz = %u\n", */
-   /*         *(uint16_t*)STREAM_SEND_BUF, */
-   /*         *(uint16_t*)(STREAM_SEND_BUF + 2)); */
-   /* Send messages */
-      /*float xo=0.0,yo=0.0,to=0.0;
-      memcpy(&xo, STREAM_SEND_BUF+sizeof(uint16_t), sizeof(float));
-      memcpy(&yo, STREAM_SEND_BUF+sizeof(uint16_t)+sizeof(float), sizeof(float));
-      memcpy(&to, STREAM_SEND_BUF+sizeof(uint16_t)+2*sizeof(float), sizeof(float));
-      fprintf(stdout,"retrieving neighbors position: %.2f,%.2f,%.2f\n",xo,yo,to);*/
-   buzzvm_process_outmsgs(VM);
+
    STREAM_SEND();
    /* Push the swarm size */
-     buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS",1));
-     buzzvm_pushi(VM, buzzdict_size(VM->swarmmembers)+1);
-     buzzvm_gstore(VM);
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS",1));
+   buzzvm_pushi(VM, buzzdict_size(VM->swarmmembers)+1);
+   buzzvm_gstore(VM);
 
    /* Print swarm
    buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);*/
