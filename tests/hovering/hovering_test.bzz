@@ -4,7 +4,7 @@
 #################################################
 ### BUZZ FUNCTIONS ##############################
 #################################################
-
+file_log_flag = 1  # 1 if output file is desired, 0 otherwise
 # Executed at init time
 function init() {
 
@@ -16,6 +16,7 @@ function init() {
     mocap_active_flag = 0
     yaw_control_flag = 0
     arm_flag = 0
+    game_over = 0
     
     # wait(1.0)
     log("welcome to init!")
@@ -33,6 +34,11 @@ function init() {
     # wait(3.0)
     t_start = time_stamp_ms(0.0)
     old_time = t_start
+
+    if(file_log_flag == 1){
+        file_name = string.concat("data_log/one_agent_waypoint",string.tostring(id),".csv")
+        data_log = io.fopen(file_name,"w")
+    }
 }
 
 # Executed every time step
@@ -47,7 +53,7 @@ function step() {
         mocap_active_flag = 1
     }
 
-    if(arm_flag == 0 and current_time > 4){
+    if(arm_flag == 0 and current_time > 20){
         log("armed")
         arm()
         arm_flag = 1
@@ -58,21 +64,29 @@ function step() {
         log("bad optitrack readings")
     }
 
-    if(takeoff_flag and current_time > 8.0){
+    if(takeoff_flag and current_time > 28.0){
         log("waiting to take off~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...")
         takeoff()
         takeoff_flag = 0
     }
 
-    if(yaw_control_flag == 0 and current_time > 12.0){
+    if(yaw_control_flag == 0 and current_time > 32.0){
         log("yaw control activated")
-        //activate_yaw_control()
+        activate_yaw_control()
         yaw_control_flag = 1
     }
 
+    
     voltage()
-    log("hello world!  ",fc_voltage)
-    log(current_time, "  position:  ",pose.position.x,"  ",pose.position.y,"  ",pose.orientation.yaw*180/3.14)
+    log(current_time, "  position:  ",pose.position.x,"  ",pose.position.y,"  ",pose.orientation.yaw*180/3.14,"  ",fc_voltage)
+    if(file_log_flag){
+        io.fwrite(data_log,current_time,",",fc_voltage,",",pose.position.x,",",pose.position.y,",",pose.orientation.yaw*180.0/3.14)
+    }
+
+    if(game_over == 0 and fc_voltage < 6.5){
+        game_over = 1
+        land()
+    }
     counter = counter + 1
 }
 
@@ -81,4 +95,7 @@ function reset() {
 }
 # Execute at exit
 function destroy() {
+    if(file_log_flag){
+        io.fclose(data_log)
+    }
 }

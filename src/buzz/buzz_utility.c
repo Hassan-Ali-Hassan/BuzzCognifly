@@ -549,7 +549,7 @@ void buzz_script_step() {
       tot += sizeof(float);
 
       //if(x > MSG_RANGE) { // limit the msg range of the nieghbor
-        buzzneighbors_add(VM, PACKETS_FIRST->id, x, y, t);
+        buzzneighbors_add(VM, PACKETS_FIRST->id, d, a, e);
       //   printf("value of x and y from %d are: %0.2f\t %0.2f\t %0.2f\n",PACKETS_FIRST->id,x,y,t);
         uint16_t msgsz;
         do {

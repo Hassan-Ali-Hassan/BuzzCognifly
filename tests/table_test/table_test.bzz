@@ -1,0 +1,48 @@
+
+swarm_size = 2
+
+#################################################
+### BUZZ FUNCTIONS ##############################
+#################################################
+# Executed at init time
+function init() {
+    my_pos = {}    
+    shared_location = stigmergy.create(2)
+    # shared_ = stigmergy.create(1)
+    
+}
+
+# Executed every time step
+function step() {
+    my_id = id - 1
+    my_key = string.concat("msg",string.tostring(my_id))
+    my_pos[0] = pose.position.x
+    my_pos[1] = pose.position.y
+    shared_location.put(my_key,my_pos)
+    # shared_.put(my_key,my_pos)
+    log(" my key is:   ",my_key)
+    i = 0
+    while(i < swarm_size){
+        if(i != (id-1)){
+            key = string.concat("msg",string.tostring(i))
+            log(key)
+            retrieved_data = shared_location.get(key)
+            log(retrieved_data)
+            if(retrieved_data != nil){
+                log("my neighbors:  ",retrieved_data[0],"   ",retrieved_data[1])
+            }
+        }
+        i = i + 1
+    }
+
+    log("position:  ", pose.position.x, "  ", pose.position.y,"  ",pose.orientation.yaw*180/3.14)
+    
+}
+
+# Executed once when the robot (or the simulator) is reset.
+function reset() {
+}
+# Execute at exit
+function destroy() {
+    
+}

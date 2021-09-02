@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
    // start_blink();
 
    /* Set the Buzz bytecode */
-   if(buzz_script_set(bcfname, dbgfname),RID) {
+   if(buzz_script_set(bcfname, dbgfname,RID)) {
       static struct timeval t1, t2;
       /* Main loop */
       while(!done && !buzz_script_done()) {

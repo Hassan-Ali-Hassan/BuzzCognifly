@@ -22,7 +22,9 @@ Emax = max_voltage
 Emin = min_voltage
 alpha_i = 0.0
 start_charging_time = 0.0
+peremeter_time = 0.0
 start_charging_flag = 0
+landing_latch = 0
 
 ke = 0.004
 discharge_rate = -ke
@@ -55,25 +57,40 @@ old_pos = {}
 old_pos[0] = 0.0
 old_pos[1] = 0.0
 
-
+cc={}
+cc_counter = 0
+u_escape = {}
+u_escape[0] = 0.0
+u_escape[1] = 0.0
 
 table_active = 1
 
 
+Targets = {}
+Targets[0] = 80.0
+Targets[1] = 80.0
+Targets[2] = 80.0
+Targets[3] = -80.0
+Targets[4] = -80.0
+Targets[5] = -80.0
+Targets[6] = -80.0
+Targets[7] = 80.0
 
+target = {}
+next_target = 0
 
-function push_info(){
-    my_key = string.concat("msg",string.tostring(my_id)) #pushing my landing time to the shared table
+# function push_info(){
+#     my_key = string.concat("msg",string.tostring(my_id)) #pushing my landing time to the shared table
 
-    my_pos = {}
-    my_pos[0] = pose.position.x
-    my_pos[1] = pose.position.y
-    my_pos[2] = alpha_i
+#     my_pos = {}
+#     my_pos[0] = pose.position.x
+#     my_pos[1] = pose.position.y
+#     my_pos[2] = alpha_i
 
-    # log("I am ", my_key," and I am pushing ",my_pos)
-    # shared_table.put(my_key,my_info)
-    shared_location.put(my_key,my_pos)
-}
+#     # log("I am ", my_key," and I am pushing ",my_pos)
+#     # shared_table.put(my_key,my_info)
+#     shared_location.put(my_key,my_pos)
+# }
 
 function position_control(x_des,y_des){
     v_ = {}
@@ -135,25 +152,59 @@ function geofence(velocity){
     return velocity
 }
 
-# function avoid_cs(velocity){
-#     #cs evasion using potential fields
-#     k_ev = 0.025
-#     k_rot = 0.1
-#     d_ = math.sqrt( (pose.position.x-xc)^2 + (pose.position.y-yc)^2 )
-#     if(d_ < 0.7){
-#         u_x_pot = k_ev*(pose.position.x-xc)/( (pose.position.x-xc)^2 + (pose.position.y-yc)^2 )^1.5 #- k_rot * (pose.position.y - yc)/d_^2#+ 0.03
-#         v_x_pot = k_ev*(pose.position.y-yc)/( (pose.position.x-xc)^2 + (pose.position.y-yc)^2 )^1.5 #+ k_rot * (pose.position.x - xc)/d_^2
-#     }
-#     else{
-#         u_x_pot = 0.0
-#         v_x_pot = 0.0
-#     }
+function avoid_p(velocity,avoidance_flag){
+    #cs evasion using potential fields
+    k_ev = 0.025
+    k_rot = 0.1
+    d_ = math.sqrt( (pose.position.x-xc)^2 + (pose.position.y-yc)^2 )
+    if(d_ < 0.7){
+        u_x_pot = k_ev*(pose.position.x-xc)/( (pose.position.x-xc)^2 + (pose.position.y-yc)^2 )^1.5 #- k_rot * (pose.position.y - yc)/d_^2#+ 0.03
+        v_x_pot = k_ev*(pose.position.y-yc)/( (pose.position.x-xc)^2 + (pose.position.y-yc)^2 )^1.5 #+ k_rot * (pose.position.x - xc)/d_^2
+    }
+    else{
+        u_x_pot = 0.0
+        v_x_pot = 0.0
+    }
 
-#     velocity[0] = velocity[0] + u_x_pot
-#     velocity[1] = velocity[1] + v_x_pot
+    u_escape[0] = 0.0
+    u_escape[1] = 0.0
+    if(avoidance_flag==1){
+
+        neighbors.foreach(
+            function(rid, data) {
+                k_ev = 0.025
+                k_rot = 0.1
+                D_safe = 0.6 #safe distance in meters
+                dij = data.distance/100.0
+                
+                # log("distance from neighbor ",rid,"  is  ",dij)
+                #now we calculate the location of the neighbour wrt self
+                neighbor_pos = {}
+                neighbor_pos[0] = dij * math.cos(data.azimuth)
+                neighbor_pos[1] = dij * math.sin(data.azimuth)
+                #convert neighbor pos precieved in local axes to delta_x and delta_y in global axes
+                neighbor_pos = rotate(neighbor_pos,pose.orientation.yaw)
+                neighbor_pos[0] = neighbor_pos[0] + pose.position.x
+                neighbor_pos[1] = neighbor_pos[1] + pose.position.y
+                #the escape velocity
+                if(dij < D_safe){
+                    u_escape[0] = u_escape[0] + k_ev*(pose.position.x-neighbor_pos[0])/dij^3 #- k_rot * (pose.position.y - yc)/d_^2#+ 0.03
+                    u_escape[1] = u_escape[1] + k_ev*(pose.position.y-neighbor_pos[1])/dij^3 #+ k_rot * (pose.position.x - xc)/d_^2   
+                }
+        })
+    }
+
+    velocity[0] = velocity[0] + u_x_pot + u_escape[0]
+    velocity[1] = velocity[1] + v_x_pot + u_escape[1]
+
+    #normalizing the velocity
+    vel_abs = math.sqrt(velocity[0]^2 + velocity[1]^2)
+    velocity[0] = velocity[0] / vel_abs * v_abs
+    velocity[1] = velocity[1] / vel_abs * v_abs
+
     
-#     return velocity
-# }
+    return velocity
+}
 
 function avoid_(velocity,avoidance_flag){ #avoidance flag: 0 cs only, 1 cs and other robots
     #cs evasion using potential fields
@@ -183,50 +234,44 @@ function avoid_(velocity,avoidance_flag){ #avoidance flag: 0 cs only, 1 cs and o
     D = dcs_th+0.25
     d_ = math.sqrt( (my_pos[0]-xc)^2 + (my_pos[1]-yc)^2 )
     h = d_ - D
-    c = {}
 
-    c[0] = -(my_pos[0]-xc)/d_ 
-    c[1] = -(my_pos[1]-yc)/d_ 
-    c[2] = p*h
+    cc[0] = -(my_pos[0]-xc)/d_ 
+    cc[1] = -(my_pos[1]-yc)/d_ 
+    cc[2] = p*h
 
     #construcing CBFs for collision avoidance with other robots
     i = 0
-    neighbourhoodPos = {}
-    D_safe = 0.6 #safe distance in meters
-    starting_index = 3
-    counter = 0
-    pij = 0.7
+    cc_counter = 0
     if(avoidance_flag==1){
-        while(i < swarm_size){
-            if(i != my_id){
-                if(iteration > 10){
-                    key = string.concat("msg",string.tostring(i))
-                    log(key)
-                    retrieved_data = shared_location.get(key)
-                    log(retrieved_data)
-                    if(retrieved_data != nil){
-                        neighbourhoodPos[2*i] = retrieved_data[0] 
-                        neighbourhoodPos[2*i+1] = retrieved_data[1]
-                        dij = math.sqrt((my_pos[0]-neighbourhoodPos[2*i])^2+(my_pos[1]-neighbourhoodPos[2*i+1])^2)
-                        hij = dij - D_safe
-                        c[starting_index + 3*counter] = -(my_pos[0]-neighbourhoodPos[2*i])/dij
-                        c[starting_index + 3*counter + 1] = -(my_pos[1]-neighbourhoodPos[2*i+1])/dij
-                        c[starting_index + 3*counter + 2] = pij * hij 
-                        counter = counter + 1
-                        log("my neighbors:  ",neighbourhoodPos[2*i],"   ",neighbourhoodPos[2*i+1])
-                    }
-                }
-            }
-            else{
-                neighbourhoodPos[2*i] = pose.position.x  
-                neighbourhoodPos[2*i+1] = pose.position.y 
-            }
-            i = i + 1
-        }
+
+        neighbors.foreach(
+            function(rid, data) {
+                starting_index = 3
+                pij = 0.5
+                D_safe = 0.6 #safe distance in meters
+                dij = data.distance/100.0
+                hij = dij - D_safe
+                # log("distance from neighbor ",rid,"  is  ",dij)
+                #now we calculate the location of the neighbour wrt self
+                neighbor_pos = {}
+                neighbor_pos[0] = dij * math.cos(data.azimuth)
+                neighbor_pos[1] = dij * math.sin(data.azimuth)
+                #convert neighbor pos precieved in local axes to delta_x and delta_y in global axes
+                neighbor_pos = rotate(neighbor_pos,pose.orientation.yaw)
+                neighbor_pos[0] = neighbor_pos[0] + pose.position.x
+                neighbor_pos[1] = neighbor_pos[1] + pose.position.y
+                #calculate cbf constraints for collision avoidance
+                cc[starting_index + 3*cc_counter] = -(my_pos[0]-neighbor_pos[0])/dij
+                cc[starting_index + 3*cc_counter + 1] = -(my_pos[1]-neighbor_pos[1])/dij
+                cc[starting_index + 3*cc_counter + 2] = pij * hij 
+                cc_counter = cc_counter + 1
+                # log("avoiding neighbor ",rid,"  ",neighbor_pos[0],"  ",neighbor_pos[1])
+        })
     }
     
     #solving the qp problem constructed thus far
-    sol = qp_solver(a, b, c, bndl, bndu)
+    # log("the value of cc is  ",cc)
+    sol = qp_solver(a, b, cc, bndl, bndu)
     # log("h: ",h, "  distance: ", d_, " sol: ",sol[0],"  ",sol[1])
 
     return sol
@@ -422,7 +467,7 @@ function energy_aware_coordination(control_input){
 
     #CBF for coordination with other robots for proper CS use
     alpha_i = (voltage - Emin)/ke #this is the arrival time of robot i
-    push_info()
+    # push_info()
 
 
     #looping over all agents in table to coordinate with them
@@ -563,7 +608,7 @@ function init() {
     yaw_control_flag = 0
     # math.rng.setseed(id)
 
-    shared_location = stigmergy.create(2)
+    # shared_location = stigmergy.create(2)
 
     file_name = string.concat("data_log/one_agent_waypoint",string.tostring(id),".csv")
     data_log = io.fopen(file_name,"w")
@@ -572,7 +617,7 @@ function init() {
 # Executed every time step
 function step() {
 
-    push_info()
+    # push_info()
 
     current_time = time_stamp_ms(t_start)
     dt = current_time - old_time
@@ -607,92 +652,107 @@ function step() {
         yaw_control_flag = 1
     }
     if(current_time > 33){
-        #checking geofencing
-        Vel = {}
-
-        # my_veloctiy = position_control(0.7,0.7) #comment for const vel random walk, uncomment for position tracking mission
-        my_veloctiy = geofence(my_veloctiy)
-
-        #go with geofence only
-        Vel = my_veloctiy
-
-        #avoid cs
-        Vel = avoid_(my_veloctiy,1)
-
-        if(energy_persist_flag == 0){
-            #sending desired velocity to track (in cm/sec)
-            goto_v(Vel[0]*100.0,Vel[1]*100.0,0.0)
+        if(current_time - peremeter_time > 10){
+            peremeter_time = current_time
+            target[0] = Targets[2*next_target]
+            target[1] = Targets[2*next_target+1]
+            if(next_target >= 3)next_target = 0
+            else next_target = next_target + 1
         }
-        else{
-            if(distance > dcs_th+0.1){
-                start_charging_flag = 0
-                if(iteration > 5){
-                    Vel = energy_aware_mission(Vel)
-                    log("normal mission ...")
-                    goto_v(Vel[0]*100.0,Vel[1]*100.0,0.0)
-                }
-            }
-            else{
-                #now the robot entered the charging station
-                if(start_charging_flag == 0){
-                    start_charging_time = current_time
-                    start_charging_flag = 1
-                }
-                dt_charging = current_time-start_charging_time
+        goto(target[0],target[1],0.0)
+    }
+    # if(current_time > 33 and current_time < 0){
+    #     #checking geofencing
+    #     Vel = {}
 
-                # if( dt_charging > 25) {
-                #     start_charging_flag = 0
-                # }
-                if(dt_charging < 65){
-                    if(dt_charging < 3){
-                        #mimicing the docking process ... takes 5 sec
-                        log("docking")
-                        Vel = position_control(xc,yc)
-                        goto_v(Vel[0]*100.0,Vel[1]*100.0,0.0)
-                    }
-                    else if(dt_charging < 6){
-                        # as if the battery has been taken away
-                        log("landing")
-                        land()
-                    }
-                    else if(dt_charging < 8){
-                        # as if the battery has been taken away
-                        log("disarming")
-                        disarm()
-                    }
-                    else if(dt_charging < 50){ #this is where we control the recharge time (diff bet. time of this condition and previous one)
-                        # a new battery has been placed
-                        log("placing new battery")
-                    }
-                    else if(dt_charging < 55){ #this is where we control the recharge time (diff bet. time of this condition and previous one)
-                        # a new battery has been placed
-                        log("charging finished ... arming!!")
-                        arm()
-                    }
-                    else if(dt_charging < 60){ 
-                        # a new battery has been placed
-                        log("taking off!!")
-                        takeoff()
-                    }
-                    else{
-                        # the robot escapes from the cs
-                        log("escaping...")
-                        goto_v(0.3*100.0,0.0.0,0.0)
-                    }
-                    log("dt_charging= ",dt_charging)
-                }
-            }
-        }
-    } 
+    #     # my_veloctiy = position_control(0.7,0.7) #comment for const vel random walk, uncomment for position tracking mission
+    #     my_veloctiy = geofence(my_veloctiy)
 
-    if(current_time-write_time > 2){
+    #     #go with geofence only
+    #     Vel = my_veloctiy
+
+    #     #avoid cs
+    #     # Vel = avoid_(my_veloctiy,1)
+    #     # Vel = avoid_p(my_veloctiy,0)
+
+    #     if(energy_persist_flag == 0){
+    #         #sending desired velocity to track (in cm/sec)
+    #         goto_v(Vel[0]*100.0,Vel[1]*100.0,0.0)
+    #     }
+    #     else{
+    #         if(distance > dcs_th+0.1){
+    #             start_charging_flag = 0
+    #             if(iteration > 5){
+    #                 Vel = energy_aware_mission(Vel)
+    #                 log("normal mission ...")
+    #                 goto_v(Vel[0]*100.0,Vel[1]*100.0,0.0)
+    #             }
+    #         }
+    #         else{
+    #             #now the robot entered the charging station
+    #             if(start_charging_flag == 0){
+    #                 start_charging_time = current_time
+    #                 start_charging_flag = 1
+    #             }
+    #             dt_charging = current_time-start_charging_time
+
+    #             # if( dt_charging > 25) {
+    #             #     start_charging_flag = 0
+    #             # }
+    #             if(dt_charging < 65){
+    #                 if(dt_charging < 3){
+    #                     #mimicing the docking process ... takes 5 sec
+    #                     log("docking")
+    #                     Vel = position_control(xc,yc)
+    #                     goto_v(Vel[0]*100.0,Vel[1]*100.0,0.0)
+    #                 }
+    #                 else if(dt_charging < 6){
+    #                     # as if the battery has been taken away
+    #                     log("landing")
+    #                     land()
+    #                 }
+    #                 else if(dt_charging < 8){
+    #                     # as if the battery has been taken away
+    #                     log("disarming")
+    #                     disarm()
+    #                 }
+    #                 else if(dt_charging < 50){ #this is where we control the recharge time (diff bet. time of this condition and previous one)
+    #                     # a new battery has been placed
+    #                     log("placing new battery")
+    #                 }
+    #                 else if(dt_charging < 55){ #this is where we control the recharge time (diff bet. time of this condition and previous one)
+    #                     # a new battery has been placed
+    #                     log("charging finished ... arming!!")
+    #                     arm()
+    #                 }
+    #                 else if(dt_charging < 60){ 
+    #                     # a new battery has been placed
+    #                     log("taking off!!")
+    #                     takeoff()
+    #                 }
+    #                 else{
+    #                     # the robot escapes from the cs
+    #                     log("escaping...")
+    #                     goto_v(0.3*100.0,0.0.0,0.0)
+    #                 }
+    #                 log("dt_charging= ",dt_charging)
+    #             }
+    #         }
+    #     }
+    # } 
+
+    if(current_time-write_time > 1){
         write_time = current_time
-        io.fwrite(data_log,current_time,",",fc_voltage,",",pose.position.x,",",pose.position.y,",",pose.orientation.yaw*180.0/3.14)
+        log( "position:  ",pose.position.x,"  ",pose.position.y,"  ",pose.orientation.yaw*180/3.14,"  ",fc_voltage)
     }
 
     voltage()
-    log(fc_voltage, "  position:  ",pose.position.x,"  ",pose.position.y,"  ",pose.orientation.yaw*180/3.14)    
+    io.fwrite(data_log,current_time,",",fc_voltage,",",pose.position.x,",",pose.position.y,",",pose.orientation.yaw*180.0/3.14,",",dt)    
 
+    if(landing_latch == 0 and fc_voltage < 6.5){
+        landing_latch = 1
+        land()
+    }
     iteration = iteration + 1
 }
 
